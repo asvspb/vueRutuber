@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1600">
+  <style>
+    .box { fill: #ffffff; stroke: #222; stroke-width: 2; }
+    .muted { fill: #f5f5f5; }
+    .label { font: 14px Arial, sans-serif; fill: #222; }
+    .title { font: bold 20px Arial, sans-serif; }
+    .subtitle { font: bold 16px Arial, sans-serif; }
+    .hint { font: 12px Arial, sans-serif; fill: #666; }
+    .pill { fill: #e6f7ff; stroke: #91d5ff; rx: 12; }
+    .status-ok { fill: #f6ffed; stroke: #b7eb8f; }
+    .status-warn { fill: #fffbe6; stroke: #ffe58f; }
+    .status-err { fill: #fff1f0; stroke: #ffa39e; }
+    .cta { fill: #e6f7ff; stroke: #1890ff; }
+    .level { fill: #fafafa; stroke: #bbb; }
+    .active { fill: #e6f7ff; stroke: #1890ff; }
+    .code { fill: #fcfcfc; stroke: #ddd; }
+  </style>
+
+  <!-- Header -->
+  <rect class="box muted" x="20" y="20" width="1400" height="80" rx="10"/>
+  <text class="title" x="40" y="70">VueExpert — Реальный мир, а не песочница</text>
+  <text class="hint" x="950" y="50">ENV: dev | VITE_API_BASE_URL: http://localhost:8000</text>
+  <text class="hint" x="950" y="72">Сервисы: frontend:5173 • backend:8000 • redis:6379</text>
+
+  <!-- Philosophy badges -->
+  <rect class="pill" x="40" y="110" width="170" height="28"/>
+  <text class="hint" x="55" y="129">Docs‑Driven</text>
+  <rect class="pill" x="220" y="110" width="210" height="28"/>
+  <text class="hint" x="235" y="129">Fix‑it‑First</text>
+  <rect class="pill" x="440" y="110" width="220" height="28"/>
+  <text class="hint" x="455" y="129">Спираль: JS → Vue → API → DB</text>
+
+  <!-- Main two-column layout -->
+  <rect class="box" x="40" y="150" width="860" height="640" rx="10"/>
+  <text class="subtitle" x="60" y="185">Быстрый старт</text>
+  <rect class="code" x="60" y="200" width="820" height="120" rx="8"/>
+  <text class="hint" x="75" y="225">1) npm ci • 2) npm run dev • 3) Открой http://localhost:5173</text>
+  <text class="hint" x="75" y="250">4) Бэкенд: docker-compose up backend redis • см. docs/docker.md</text>
+  <text class="hint" x="75" y="275">5) Проверь /health и VITE_API_BASE_URL</text>
+
+  <text class="subtitle" x="60" y="350">Урок дня (Level 1: JS Core)</text>
+  <rect class="box muted" x="60" y="365" width="820" height="160" rx="8"/>
+  <text class="label" x="80" y="395">Тема: Основы синтаксиса — форматирование пользователя</text>
+  <text class="hint" x="80" y="420">ТЗ → Референс → Теория → Практика → Чек‑лист → Решение</text>
+  <rect class="cta" x="80" y="440" width="180" height="34" rx="6"/>
+  <text class="label" x="105" y="463">Открыть урок</text>
+  <rect class="cta" x="270" y="440" width="220" height="34" rx="6"/>
+  <text class="label" x="290" y="463">Перейти к упражнениям</text>
+
+  <text class="subtitle" x="60" y="555">Fix‑it‑First (исправь поломку)</text>
+  <rect class="status-warn" x="60" y="570" width="820" height="200" rx="8"/>
+  <text class="hint" x="80" y="600">Описание: Неправильная обработка возраста (строка/число) ломает вывод.</text>
+  <text class="hint" x="80" y="625">Где править: src/components/HelloWorld.vue → formatUser()</text>
+  <rect class="cta" x="80" y="645" width="220" height="34" rx="6"/>
+  <text class="label" x="100" y="668">Открыть поломанный код</text>
+  <rect class="cta" x="310" y="645" width="220" height="34" rx="6"/>
+  <text class="label" x="330" y="668">Подсказка (docs/js.md)</text>
+
+  <!-- Right column panels -->
+  <rect class="box" x="920" y="150" width="500" height="320" rx="10"/>
+  <text class="subtitle" x="940" y="185">Статус стека</text>
+  <rect class="status-ok" x="940" y="200" width="460" height="50" rx="8"/>
+  <text class="label" x="955" y="230">Backend /health: OK • 200 ms</text>
+  <rect class="status-ok" x="940" y="260" width="460" height="50" rx="8"/>
+  <text class="label" x="955" y="290">SQLite: подключено</text>
+  <rect class="status-ok" x="940" y="320" width="460" height="50" rx="8"/>
+  <text class="label" x="955" y="350">Redis: PING → PONG</text>
+
+  <rect class="box" x="920" y="490" width="500" height="300" rx="10"/>
+  <text class="subtitle" x="940" y="525">Capstone прогресс</text>
+  <rect class="level active" x="940" y="540" width="460" height="48" rx="8"/>
+  <text class="label" x="955" y="570">A: SPA + FastAPI + SQLite + Redis + тесты + compose — 20%</text>
+  <rect class="level" x="940" y="595" width="460" height="48" rx="8"/>
+  <text class="label" x="955" y="625">B: PostgreSQL + Alembic + Testcontainers — 0%</text>
+  <rect class="level" x="940" y="650" width="460" height="48" rx="8"/>
+  <text class="label" x="955" y="680">C: Security + Healthcheck + Docs — 0%</text>
+
+  <!-- Roadmap lanes -->
+  <rect class="box" x="40" y="820" width="1380" height="300" rx="10"/>
+  <text class="subtitle" x="60" y="855">Учебный маршрут (Roadmap)</text>
+  <rect class="level active" x="60" y="875" width="1320" height="56" rx="8"/>
+  <text class="label" x="80" y="910">Level 1: JavaScript Core — сейчас</text>
+  <rect class="level" x="60" y="940" width="1320" height="56" rx="8"/>
+  <text class="label" x="80" y="975">Level 2: Vue 3 Essentials</text>
+  <rect class="level" x="60" y="1005" width="1320" height="56" rx="8"/>
+  <text class="label" x="80" y="1040">Level 3: Backend (FastAPI)</text>
+
+  <!-- Docs driven panel -->
+  <rect class="box" x="40" y="1140" width="1380" height="220" rx="10"/>
+  <text class="subtitle" x="60" y="1175">Docs‑Driven</text>
+  <text class="hint" x="60" y="1200">Читайте: docs/curriculum/ROADMAP.md, docs/curriculum/js.md, docs/vite.md, docs/docker.md</text>
+  <rect class="cta" x="60" y="1215" width="240" height="34" rx="6"/>
+  <text class="label" x="80" y="1238">Открыть учебные материалы</text>
+  <rect class="cta" x="310" y="1215" width="260" height="34" rx="6"/>
+  <text class="label" x="330" y="1238">Перейти к Level 1: JS</text>
+
+  <!-- Footer quick links -->
+  <rect class="box muted" x="40" y="1380" width="1380" height="160" rx="10"/>
+  <text class="subtitle" x="60" y="1415">Быстрые ссылки</text>
+  <text class="hint" x="60" y="1440">• Репозиторий • Документация • Чек‑листы • E2E тесты</text>
+</svg>

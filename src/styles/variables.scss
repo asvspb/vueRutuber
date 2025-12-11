@@ -1,0 +1,37 @@
+// Цвета
+$primary-text-color: #2c3e50;
+$secondary-text-color: #7f8c8d;
+$accent-color: #42b983;
+$background-color: #ffffff;
+$secondary-background: #f9f9f9;
+$border-color: #e0e0e0;
+$button-bg-color: #409eff;
+$button-hover-color: #337ecc;
+
+// Шрифты
+$font-size-small: 12px;
+$font-size-medium: 16px;
+$font-size-large: 20px;
+$font-size-xlarge: 24px;
+
+// Размеры
+$border-radius: 4px;
+$padding-small: 8px;
+$padding-medium: 16px;
+$padding-large: 24px;
+
+// Адаптивные размеры
+$mobile-breakpoint: 480px;
+$tablet-breakpoint: 768px;
+$desktop-breakpoint: 1024px;
+$large-desktop-breakpoint: 1200px;
+
+// Цвета кнопок
+$button-primary-bg: #409eff; // Цвет фона основной кнопки
+$button-primary-text: #ffffff; // Цвет текста основной кнопки
+$button-secondary-bg: #093b86; // Цвет фона вторичной кнопки
+$button-secondary-text: #343435; // Цвет текста вторичной кнопки
+$button-disabled-bg: #e0e0e0; // Цвет фона отключенной кнопки
+$button-disabled-text: #a0a0a0; // Цвет текста отключенной кнопки
+$button-hover-bg: #337ecc; // Цвет фона при наведении
+$button-hover-text: #ffffff; // Цвет текста при наведении

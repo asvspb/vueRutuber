@@ -1,0 +1,51 @@
+{
+  "name": "vue-sqlite-redis-scss-learning-project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint . && stylelint \"**/*.{vue,scss,css}\"",
+    "lint:css": "stylelint \"**/*.{vue,scss,css}\"",
+    "lint:css:fix": "stylelint \"**/*.{vue,scss,css}\" --fix",
+    "lint:fix": "eslint . --fix && npm run lint:css:fix",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@vueuse/core": "^14.1.0",
+    "axios": "^1.13.2",
+    "pinia": "^3.0.4",
+    "vue": "^3.4.21",
+    "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.42.1",
+    "@types/node": "^20.11.25",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "@vitest/coverage-v8": "^1.4.0",
+    "@vitest/ui": "^1.4.0",
+    "@vue/test-utils": "^2.4.5",
+    "eslint": "^9.13.0",
+    "eslint-plugin-vue": "^9.27.0",
+    "eslint-plugin-vuejs-accessibility": "^2.3.1",
+    "jsdom": "^24.0.0",
+    "postcss-html": "^1.6.0",
+    "postcss-scss": "^4.0.9",
+    "sass": "^1.93.3",
+    "stylelint": "^16.9.0",
+    "stylelint-config-recommended-vue": "^1.5.0",
+    "stylelint-config-standard-scss": "^13.1.0",
+    "stylelint-order": "^6.0.4",
+    "vite": "^5.1.6",
+    "vitest": "^1.4.0",
+    "vue-eslint-parser": "^9.4.3",
+    "wait-on": "^7.2.0"
+  }
+}

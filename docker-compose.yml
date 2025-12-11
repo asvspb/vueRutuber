@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  frontend:
+    build: .
+    container_name: vuExpert-frontend
+    ports:
+      - "4173:4173" # localhost:4173 -> контейнер (vite preview)
+    env_file:
+      - .env
+    environment:
+      # VITE_* переменные можно добавить здесь при необходимости
+      VITE_API_BASE_URL: "http://backend:8000"
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    container_name: vuExpert-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SQLITE_PATH: /app/data/db.sqlite
+    depends_on:
+      - redis
+    volumes:
+      - sqlite_data:/app/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: vuExpert-redis
+    ports:
+      - "6379:6379" # по необходимости (для отладки/GUI)
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
+  sqlite_data:
+

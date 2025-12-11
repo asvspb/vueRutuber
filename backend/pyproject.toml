@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "vuExpert-backend"
+version = "0.1.0"
+description = "VueExpert Backend (FastAPI, SQLAlchemy async)"
+authors = ["Your Name <you@example.com>"]
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "*"
+"uvicorn" = {version = "*", extras = ["standard"]}
+redis = "*"
+aiosqlite = "*"
+python-dotenv = "*"
+httpx = "*"
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.44"}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-asyncio = "*"
+pytest-cov = "*"
+ruff = "*"
+testcontainers = "*"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,98 @@
+// Основной файл стилей
+
+// Импортируем переменные
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Сброс стилей
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+// Основные стили приложения
+body {
+  font-family: 'Arial', sans-serif;
+  line-height: 1.6;
+  color: $primary-text-color;
+  background-color: $background-color;
+}
+
+// Контейнеры
+.container {
+  @include container();
+}
+
+// Кнопки
+.btn {
+  @include button-style($button-bg-color);
+
+  &--secondary {
+    @include button-style(#06345d);
+  }
+
+  &--success {
+    @include button-style(#28a745);
+  }
+
+  &--danger {
+    @include button-style(#dc3545);
+  }
+}
+
+// Адаптивные шрифты
+.responsive-title {
+  @include responsive-font($font-size-large, $font-size-xlarge);
+}
+
+// Тени
+.shadow-1 {
+  @include shadow(1);
+}
+
+.shadow-2 {
+  @include shadow(2);
+}
+
+.shadow-3 {
+  @include shadow(3);
+}
+
+.shadow-4 {
+  @include shadow(4);
+}
+
+.shadow-5 {
+  @include shadow(5);
+}
+
+// Градиенты
+.gradient-primary {
+  @include gradient(#409eff, #45aaf2);
+}
+
+.gradient-success {
+  @include gradient(#28a745, #20bf6b);
+}
+
+.gradient-warning {
+  @include gradient(#ffc107, #f39c12);
+}
+
+// Адаптивные медиа-запросы
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 0 10px;
+  }
+
+  body {
+    font-size: $font-size-small;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+}

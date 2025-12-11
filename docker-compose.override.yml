@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  frontend:
+    ports:
+      - "4173:4173"
+    environment:
+      - VITE_API_BASE_URL=http://backend:8000
+    # Убираем depends_on для возможности запуска по отдельности
+    # depends_on:
+    #   - backend
+
+  backend:
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    # Убираем depends_on для возможности запуска по отдельности
+    # depends_on:
+    #   - redis
+
+  redis:
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

@@ -1,0 +1,88 @@
+// Миксины для использования в проекте
+
+// Миксин для адаптивных шрифтов
+@mixin responsive-font($min-size, $max-size) {
+  $min-width: 320px;
+  $max-width: 1200px;
+
+  font-size: $min-size;
+
+  @media screen and (min-width: $min-width) {
+    font-size: calc(#{$min-size} + #{($max-size - $min-size)} * ((100vw - #{$min-width}) / #{$max-width - $min-width}));
+  }
+
+  @media screen and (min-width: $max-width) {
+    font-size: $max-size;
+  }
+}
+
+// Миксин для центрирования элемента
+@mixin center-element {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// Миксин для создания тени
+@mixin shadow($depth) {
+ @if $depth == 1 {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  } @else if $depth == 2 {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0.23);
+  } @else if $depth == 3 {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+  } @else if $depth == 4 {
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px rgba(0, 0, 0, 0.22);
+  } @else if $depth == 5 {
+    box-shadow: 0 19px 38px rgba(0, 0, 0, 0.30), 0 15px 12px rgba(0, 0, 0, 0.22);
+  }
+}
+
+// Миксин для создания градиента
+@mixin gradient($start-color, $end-color) {
+  background: $start-color;
+  background: linear-gradient(135deg, $start-color, $end-color);
+}
+
+// Миксин для адаптивных контейнеров
+@mixin container($max-width: 1200px) {
+  width: 100%;
+  max-width: $max-width;
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
+// Миксин для flex-контейнера
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// Миксин для создания кнопок
+@mixin button-style($bg-color, $text-color: white) {
+  background-color: $bg-color;
+  color: $text-color;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: rgba($bg-color, 0.9);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba($bg-color, 0.5);
+  }
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}

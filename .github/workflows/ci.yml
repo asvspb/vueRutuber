@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Setup Poetry
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+      - name: Install deps (backend)
+        working-directory: backend
+        run: |
+          poetry install --no-interaction --no-ansi --with dev
+      - name: Cache Poetry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: ${{ runner.os }}-poetry-${{ hashFiles('backend/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+      - name: Lint (ruff)
+        working-directory: backend
+        run: poetry run ruff backend || true
+      - name: Test (pytest) with coverage
+        working-directory: backend
+        run: poetry run pytest -q --cov=app --cov-report=term-missing --cov-fail-under=50
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint (eslint + stylelint)
+        run: |
+          npx eslint --version || npm i -D eslint @eslint/js eslint-plugin-vue eslint-plugin-vuejs-accessibility vue-eslint-parser
+          npx stylelint --version || npm i -D stylelint stylelint-config-standard-scss stylelint-config-recommended-vue stylelint-order postcss-html
+          npx eslint . || true
+          npx stylelint "**/*.{vue,scss,css}" || true
+      - name: Unit tests (Vitest) with coverage
+        run: npm run test:coverage
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      - name: Build frontend
+        run: npm run build
+      - name: Start preview server
+        run: |
+          npm run preview -- --port 4173 &
+          npx wait-on http://localhost:4173
+      - name: E2E tests (Playwright)
+        env:
+          PW_BASE_URL: http://localhost:4173
+        run: npm run e2e
