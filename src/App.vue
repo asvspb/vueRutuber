@@ -48,7 +48,7 @@ const toggleMessage = () => {
   @use './styles/variables.scss' as *;
   @use './styles/mixins.scss' as *;
 
-  #app {
+ #app {
     font-family: Avenir, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -96,7 +96,6 @@ const toggleMessage = () => {
     }
 
     &__button {
-      @include button-style($button-primary-bg);
       padding: 10px 20px;
       font-size: $font-size-medium;
     }

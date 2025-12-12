@@ -80,6 +80,17 @@ body {
   @include gradient(#ffc107, #f39c12);
 }
 
+// Совместимость с Vuetify
+// Убедимся, что наши стили не конфликтуют с Vuetify
+.v-application {
+  .v-btn.example__button {
+    // Применяем наши стили к кнопкам Vuetify
+    @include button-style($button-primary-bg);
+    padding: 10px 20px;
+    font-size: $font-size-medium;
+  }
+}
+
 // Адаптивные медиа-запросы
 @media screen and (max-width: 768px) {
   .container {
@@ -88,7 +99,7 @@ body {
 
   body {
     font-size: $font-size-small;
-  }
+ }
 }
 
 @media screen and (max-width: 480px) {
