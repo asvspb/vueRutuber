@@ -6,11 +6,6 @@
 
 - `ai_developer_guide.md` - Руководство для ИИ разработчиков
 - `documentation_rules.md` - Правила написания документации
-- `environment_variables.md` - Описание переменных окружения
-- `poetry_migration_plan.md` - План миграции на Poetry
-- `project_architecture_and_philosophy.md` - Архитектура и философия проекта
-- `qwen_coder_integration.md` - Интеграция с Qwen Coder
-- `curriculum/` - Учебные материалы по различным технологиям
 - `wireframes/` - Макеты интерфейсов
 
 ## Для ИИ агентов

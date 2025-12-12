@@ -6,14 +6,45 @@
 
 - `app/` - Основной код приложения
   - `main.py` - Входная точка приложения
-  - `models.py` - Модели базы данных
+  - `models.py` - Модели базы данных (Item, User)
   - `schemas.py` - Pydantic схемы для валидации данных
   - `crud.py` - Операции CRUD (создание, чтение, обновление, удаление)
-  - `database.py` - Конфигурация базы данных
+  - `database.py` - Конфигурация базы данных (поддержка SQLite и PostgreSQL)
+  - `rutube_scraper.py` - Скрипт для скрейпинга видео с Rutube
 - `tests/` - Тесты для приложения
 - `Dockerfile` - Файл для создания Docker образа
 - `requirements.txt` - Зависимости Python
 - `poetry.lock` и `pyproject.toml` - Конфигурации для Poetry
+
+## Конфигурация
+
+Приложение поддерживает конфигурацию через переменные окружения. Пример файла `.env.example` находится в корне проекта.
+
+### Базы данных
+
+- **SQLite** (по умолчанию): Легкая встроенная база данных, файлы не сохраняются в Git.
+- **PostgreSQL**: Для продакшена, настройте `DATABASE_URL` в `.env`.
+
+### Переменные окружения
+
+- `DATABASE_URL` - URL подключения к базе данных
+- `REDIS_HOST` и `REDIS_PORT` - Настройки Redis
+- `CORS_ORIGINS` - Разрешенные источники для CORS
+
+## Запуск
+
+Используйте Docker Compose для запуска:
+
+```bash
+docker-compose up
+```
+
+Или локально с Poetry:
+
+```bash
+poetry install
+poetry run uvicorn app.main:app --reload
+```
 
 ## Для ИИ агентов
 
