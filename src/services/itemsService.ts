@@ -8,25 +8,25 @@ export const itemsService = {
   },
 
   // Получить элемент по ID
-  async getById(id) {
+  async getById(id: string | number) {
     const response = await api.get(`/items/${id}`)
     return response.data
   },
 
   // Создать новый элемент
-  async create(item) {
+  async create(item: any) {
     const response = await api.post('/items', item)
     return response.data
   },
 
   // Обновить элемент
-  async update(id, item) {
+  async update(id: string | number, item: any) {
     const response = await api.put(`/items/${id}`, item)
     return response.data
   },
 
   // Удалить элемент
-  async delete(id) {
+  async delete(id: string | number) {
     const response = await api.delete(`/items/${id}`)
     return response.data
   },

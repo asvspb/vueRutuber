@@ -4,7 +4,7 @@
 
 ## Структура
 
-- `HelloWorld.spec.js` - Тесты для компонента HelloWorld.vue
+- `HelloWorld.spec.ts` - Тесты для компонента HelloWorld.vue (TypeScript)
 
 ## Для ИИ агентов
 

@@ -1,8 +1,14 @@
 import { ref } from 'vue'
-import { useAsyncState } from '@vueuse/core'
-import api from '../services/api.js'
+import api from '../services/api.ts'
 
-export function useApi(endpoint, options = {}) {
+interface ApiOptions {
+  method?: string
+  params?: Record<string, any>
+  data?: any
+  immediate?: boolean
+}
+
+export function useApi(endpoint: string, options: ApiOptions = {}) {
   const {
     method = 'get',
     params = {},
@@ -11,10 +17,10 @@ export function useApi(endpoint, options = {}) {
   } = options
 
   const loading = ref(false)
-  const error = ref(null)
-  const data = ref(null)
+  const error = ref<any>(null)
+  const data = ref<any>(null)
 
-  const execute = async (overrideOptions = {}) => {
+  const execute = async (overrideOptions: Partial<ApiOptions> = {}) => {
     const {
       method: overrideMethod = method,
       params: overrideParams = params,
@@ -62,10 +68,10 @@ export function useCreateItem() {
   return useApi('/items', { method: 'post' })
 }
 
-export function useUpdateItem(id) {
+export function useUpdateItem(id: string | number) {
   return useApi(`/items/${id}`, { method: 'put' })
 }
 
-export function useDeleteItem(id) {
+export function useDeleteItem(id: string | number) {
   return useApi(`/items/${id}`, { method: 'delete' })
 }

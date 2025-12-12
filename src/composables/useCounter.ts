@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 
 export function useCounter(initialValue = 0) {

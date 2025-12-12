@@ -16,7 +16,7 @@ export default [
     ]
   },
   {
-    files: ['**/*.{js,vue}'],
+    files: ['**/*.{js,ts,vue}'],
     languageOptions: {
       parser: vueParser,
       parserOptions: {

@@ -1,7 +1,6 @@
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-
 import { configDefaults } from 'vitest/config'
 
 // https://vitejs.dev/config/
@@ -21,7 +20,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules', 'src/main.js', 'src/components/README.md', 'src/styles/*', 'docs/*']
+      exclude: ['node_modules', 'src/main.ts', 'src/components/README.md', 'src/styles/*', 'docs/*']
     }
  }
 })

@@ -1,9 +1,16 @@
 import { ref } from 'vue'
 
-export function useNotify() {
-  const notifications = ref([])
+interface Notification {
+  id: number
+  message: string
+  type: string
+  duration: number
+}
 
-  function show(message, type = 'info', duration = 3000) {
+export function useNotify() {
+  const notifications = ref<Notification[]>([])
+
+  function show(message: string, type = 'info', duration = 3000) {
     const id = Date.now()
     const notification = {
       id,
@@ -22,23 +29,23 @@ export function useNotify() {
     return id
   }
 
-  function success(message, duration = 3000) {
+  function success(message: string, duration = 3000) {
     return show(message, 'success', duration)
   }
 
-  function error(message, duration = 5000) {
+  function error(message: string, duration = 5000) {
     return show(message, 'error', duration)
   }
 
-  function warning(message, duration = 4000) {
+  function warning(message: string, duration = 4000) {
     return show(message, 'warning', duration)
   }
 
-  function info(message, duration = 3000) {
+  function info(message: string, duration = 3000) {
     return show(message, 'info', duration)
   }
 
-  function remove(id) {
+  function remove(id: number) {
     const index = notifications.value.findIndex(n => n.id === id)
     if (index > -1) {
       notifications.value.splice(index, 1)
