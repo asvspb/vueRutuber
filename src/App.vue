@@ -1,46 +1,32 @@
 <template>
   <div id="app">
+    <header>
+      <h1>VueExpert Frontend</h1>
+    </header>
 
+    <main>
 
-    <section class="example">
-      <div class="example__container">
-        <!-- размести ниже блок с переменной message -->
-        <h2>{{ message }}</h2>
-        <h2 class="example__title">Пример использования SCSS</h2>
-        <p class="example__text">Этот текст стилизован с использованием SCSS</p>
-        <div class="example__nested">
-          <p class="example__nested-text">Это вложенный элемент с наследованием стилей</p>
-          <button class="example__button">Нажми меня!</button>
-          <p>Счетчик: {{ count }}</p>
-        <div class="inner-container">
-            <button class="example__button--secondary" @click="increment">Увеличить счетчик</button>
-            <button class="example__button--secondary" @click="reset">Сбросить счетчик</button>
-            <button class="example__button--secondary" @click="toggleMessage">Измениeть сообщение</button>
+      <!-- Добавляем компонент MovieList -->
+      <section class="movies-section">
+        <div class="movies-container">
+          <h2 class="movies-title">Фильмы</h2>
+          <MovieList @movie-selected="handleMovieSelected" />
         </div>
-
-        </div>
-      </div>
-    </section>
-
+      </section>
+    </main>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import Documentation from './components/Documentation.vue'
-import DatabaseExample from './components/DatabaseExample.vue'
-import HelloWorld from './components/HelloWorld.vue';
+import MovieList from './components/MovieList.vue'
 
-const message = ref('Привет, Vue 3!');
-const count = ref(0);
-const increment = () => {
-  count.value++;
-};
-const reset = () => {
-  count.value = 0;
-};
-const toggleMessage = () => {
-  message.value = message.value === 'Привет, Vue 3!' ? 'Сообщение изменено!' : 'Привет, Vue 3!';
+
+
+// Обработчик события выбора фильма
+const handleMovieSelected = (movie) => {
+  selectedMovie.value = movie
+  console.log('Выбран фильм:', movie)
 };
 </script>
 
@@ -57,10 +43,44 @@ const toggleMessage = () => {
     margin-top: 60px;
     padding: 0 20px;
   }
+  
+  header {
+    margin-bottom: 30px;
+  }
+  
+  h1 {
+    color: $primary-text-color;
+    margin-bottom: 20px;
+  }
+  
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .movies-section {
+    width: 100%;
+    margin-top: 40px;
+  }
+  
+  .movies-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  
+  .movies-title {
+    color: $primary-text-color;
+    margin-bottom: 20px;
+    font-size: 2rem;
+  }
+  
   .inner-container {
     @include flex-center;
     gap: 10px;
   }
+  
   .example {
     &__container {
       @include container(800px);
