@@ -21,7 +21,7 @@
 import { ref } from 'vue'
 import MovieList from './components/MovieList.vue'
 
-
+const selectedMovie = ref(null)
 
 // Обработчик события выбора фильма
 const handleMovieSelected = (movie) => {

@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 
 # Универсальная строка подключения. Приоритет: DATABASE_URL -> SQLITE_PATH (дефолт SQLite)
 DATABASE_URL = os.getenv("DATABASE_URL")
+SQLITE_PATH = os.getenv("SQLITE_PATH", "/app/data/db.sqlite")
 if not DATABASE_URL:
-    SQLITE_PATH = os.getenv("SQLITE_PATH", "/app/data/db.sqlite")
     if SQLITE_PATH.startswith("sqlite:///"):
         clean_path = SQLITE_PATH.replace("sqlite:///", "")
         DATABASE_URL = f"sqlite+aiosqlite:///{clean_path}"

@@ -2,11 +2,11 @@ import axios from 'axios'
 
 // Создание экземпляра Axios
 const api = axios.create({
-  baseURL: (import.meta.env as any).VITE_API_BASE_URL || 'http://localhost:8000/api',
-  timeout: 10000,
+  baseURL: (import.meta.env as any).VITE_API_BASE_URL || 'http://localhost:3535/api',
+  timeout: 15000, // Увеличим таймаут
   headers: {
     'Content-Type': 'application/json',
-  },
+ },
 })
 
 // Интерсептор запросов

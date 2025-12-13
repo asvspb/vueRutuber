@@ -21,6 +21,11 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 # Приложение FastAPI должно быть создано ДО регистрации обработчиков событий
 app = FastAPI(title="VueExpert Backend", version="0.1.0")
 
+# Создаем подприложение для API
+from fastapi import APIRouter
+api_router = APIRouter()
+
+
 # Получаем разрешенные источники из переменной окружения
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:4173,http://localhost:5173").split(",")
 
@@ -46,7 +51,7 @@ async def startup_event():
         await conn.run_sync(Base.metadata.create_all)
 
 
-@app.get("/health")
+@api_router.get("/health")
 async def health() -> dict:
     """Простая проверка работы backend и подключения к Redis/SQLite."""
     try:
@@ -65,7 +70,7 @@ async def health() -> dict:
     return {"status": "ok", "redis": redis_status, "sqlite": sqlite_status}
 
 
-@app.get("/counter")
+@api_router.get("/counter")
 async def counter() -> dict:
     """Пример эндпоинта, который использует Redis для счётчика."""
     value = await redis_client.incr("counter")
@@ -73,18 +78,18 @@ async def counter() -> dict:
 
 
 # Эндпоинты для работы с SQLite
-@app.post("/items/", response_model=schemas.Item)
+@api_router.post("/items/", response_model=schemas.Item)
 async def create_item(item: schemas.ItemCreate, db: AsyncSession = Depends(get_db)):
     return await crud.create_item(db=db, item=item)
 
 
-@app.get("/items/", response_model=List[schemas.Item])
+@api_router.get("/items/", response_model=List[schemas.Item])
 async def read_items(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     items = await crud.get_items(db, skip=skip, limit=limit)
     return items
 
 
-@app.get("/items/{item_id}", response_model=schemas.Item)
+@api_router.get("/items/{item_id}", response_model=schemas.Item)
 async def read_item(item_id: int, db: AsyncSession = Depends(get_db)):
     item = await crud.get_item(db, item_id=item_id)
     if item is None:
@@ -92,12 +97,90 @@ async def read_item(item_id: int, db: AsyncSession = Depends(get_db)):
     return item
 
 
-@app.post("/users/", response_model=schemas.User)
+@api_router.post("/users/", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     return await crud.create_user(db=db, user=user)
 
 
-@app.get("/users/", response_model=List[schemas.User])
+@api_router.get("/users/", response_model=List[schemas.User])
 async def read_users(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     users = await crud.get_users(db, skip=skip, limit=limit)
     return users
+
+
+# Эндпоинты для работы с фильмами
+@api_router.post("/movies/", response_model=schemas.Movie)
+async def create_movie(movie: schemas.MovieCreate, db: AsyncSession = Depends(get_db)):
+    return await crud.create_movie(db=db, movie=movie)
+
+
+@api_router.get("/movies/", response_model=List[schemas.Movie])
+async def read_movies(
+    skip: int = 0, 
+    limit: int = 10, 
+    is_active: bool = True,
+    db: AsyncSession = Depends(get_db)
+):
+    movies = await crud.get_movies(db, skip=skip, limit=limit, is_active=is_active)
+    return movies
+
+
+@api_router.get("/movies/{movie_id}", response_model=schemas.Movie)
+async def read_movie(movie_id: int, db: AsyncSession = Depends(get_db)):
+    movie = await crud.get_movie(db, movie_id=movie_id)
+    if movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return movie
+
+
+@api_router.put("/movies/{movie_id}", response_model=schemas.Movie)
+async def update_movie(
+    movie_id: int, 
+    movie_update: schemas.MovieUpdate, 
+    db: AsyncSession = Depends(get_db)
+):
+    updated_movie = await crud.update_movie(db, movie_id=movie_id, movie_update=movie_update)
+    if updated_movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return updated_movie
+
+
+@api_router.delete("/movies/{movie_id}", response_model=schemas.Movie)
+async def delete_movie(movie_id: int, db: AsyncSession = Depends(get_db)):
+    deleted_movie = await crud.delete_movie(db, movie_id=movie_id)
+    if deleted_movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return deleted_movie
+
+
+@api_router.get("/movies/year/{year}", response_model=List[schemas.Movie])
+async def read_movies_by_year(
+    year: int, 
+    skip: int = 0, 
+    limit: int = 10, 
+    db: AsyncSession = Depends(get_db)
+):
+    movies = await crud.get_movies_by_year(db, year=year, skip=skip, limit=limit)
+    return movies
+
+
+@api_router.get("/movies/genre/{genre}", response_model=List[schemas.Movie])
+async def read_movies_by_genre(
+    genre: str, 
+    skip: int = 0, 
+    limit: int = 100, 
+    db: AsyncSession = Depends(get_db)
+):
+    movies = await crud.get_movies_by_genre(db, genre=genre, skip=skip, limit=limit)
+    return movies
+
+
+@api_router.post("/movies/{movie_id}/increment-views")
+async def increment_movie_views(movie_id: int, db: AsyncSession = Depends(get_db)):
+    updated_movie = await crud.increment_movie_views(db, movie_id=movie_id)
+    if updated_movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return {"views": updated_movie.views}
+
+# Подключаем маршруты к основному приложению с префиксом /api
+app.include_router(api_router, prefix="/api")
