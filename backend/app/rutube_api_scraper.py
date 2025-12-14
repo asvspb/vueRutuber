@@ -71,7 +71,7 @@ def extract_year_from_date(date_str):
         # Try parsing ISO format
         dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
         return dt.year
-    except:
+    except Exception:
         return datetime.now().year
 
 
@@ -84,7 +84,7 @@ def parse_channel_added_at(date_str):
         # Parse ISO format with Z/UTC handling
         dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
         return dt
-    except:
+    except Exception:
         return None
 
 
@@ -99,7 +99,7 @@ def format_duration(seconds):
         minutes = (seconds % 3600) // 60
         secs = seconds % 60
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
-    except:
+    except Exception:
         return "00:00:00"
 
 
