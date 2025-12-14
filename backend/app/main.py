@@ -219,5 +219,133 @@ async def increment_movie_views(movie_id: int, db: AsyncSession = Depends(get_db
         raise HTTPException(status_code=404, detail="Movie not found")
     return {"views": updated_movie.views}
 
+
+# Эндпоинты для работы с каналами
+@api_router.get("/channels/", response_model=List[schemas.ChannelWithVideosCount])
+async def read_channels(
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    channels = await crud.get_channels_with_videos_count(db, skip=skip, limit=limit)
+    return channels
+
+
+@api_router.get("/channels/{channel_id}", response_model=schemas.Channel)
+async def read_channel(channel_id: int, db: AsyncSession = Depends(get_db)):
+    channel = await crud.get_channel(db, channel_id=channel_id)
+    if channel is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return channel
+
+
+# Эндпоинты для работы с плейлистами
+@api_router.get("/playlists/", response_model=List[schemas.PlaylistWithVideosCount])
+async def read_playlists(
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    playlists = await crud.get_playlists_with_videos_count(db, skip=skip, limit=limit)
+    return playlists
+
+
+@api_router.get("/playlists/{playlist_id}", response_model=schemas.Playlist)
+async def read_playlist(playlist_id: int, db: AsyncSession = Depends(get_db)):
+    playlist = await crud.get_playlist(db, playlist_id=playlist_id)
+    if playlist is None:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+    return playlist
+
+
+@api_router.get("/playlists/{playlist_id}/videos", response_model=List[schemas.Movie])
+async def read_playlist_videos(
+    playlist_id: int,
+    channel_id: int = None,
+    skip: int = 0,
+    limit: int = 24,
+    order: str = "-channel_added_at",
+    db: AsyncSession = Depends(get_db)
+):
+    """Получить видео из плейлиста с возможностью фильтрации по каналу и сортировки"""
+    videos = await crud.get_playlist_movies_with_channel_filter(
+        db,
+        playlist_id=playlist_id,
+        channel_id=channel_id,
+        skip=skip,
+        limit=limit,
+        order_by=order
+    )
+    return videos
+
+
+# Эндпоинты для импорта плейлистов из Rutube
+from .rutube_api_scraper import import_rutube_playlist_videos
+import re
+from urllib.parse import urlparse
+
+def validate_rutube_playlist_url(url: str) -> bool:
+    """Проверяет, является ли URL действительным URL плейлиста Rutube"""
+    try:
+        parsed = urlparse(url)
+        # Проверяем домен
+        if not parsed.netloc.endswith('rutube.ru'):
+            return False
+
+        # Проверяем путь - должен быть вида /plst/{id}/ или /plst/{id}
+        path_parts = parsed.path.strip('/').split('/')
+        if len(path_parts) >= 2 and path_parts[0] == 'plst':
+            playlist_id = path_parts[1]
+            return playlist_id.isdigit()
+
+        return False
+    except Exception:
+        return False
+
+
+def extract_playlist_id_from_url(url: str) -> str:
+    """Извлекает ID плейлиста из URL"""
+    # Пример URL: https://rutube.ru/plst/707635/
+    match = re.search(r'/plst/(\d+)', url)
+    if match:
+        return match.group(1)
+    return None
+
+
+@api_router.post("/playlists/import")
+async def import_playlist(
+    rutube_playlist_url: str,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    """Импорт плейлиста из Rutube"""
+    # Валидация URL
+    if not validate_rutube_playlist_url(rutube_playlist_url):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Rutube playlist URL. Expected format: https://rutube.ru/plst/{id}/"
+        )
+
+    # Извлечение ID плейлиста
+    playlist_id = extract_playlist_id_from_url(rutube_playlist_url)
+    if not playlist_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not extract playlist ID from URL"
+        )
+
+    try:
+        # Запуск импорта
+        result = await import_rutube_playlist_videos(
+            db,
+            rutube_playlist_url,
+            playlist_id,
+            limit
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import error: {str(e)}")
+
+
 # Подключаем маршруты к основному приложению с префиксом /api
 app.include_router(api_router, prefix="/api")
