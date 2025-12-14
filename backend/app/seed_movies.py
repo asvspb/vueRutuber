@@ -82,8 +82,9 @@ async def create_test_movies():
     """Создание тестовых данных фильмов"""
     async with AsyncSessionLocal() as db:
         # Проверяем, есть ли уже фильмы в базе
+        from sqlalchemy import text
         existing_count = await db.execute(
-            "SELECT COUNT(*) FROM movies"
+            text("SELECT COUNT(*) FROM movies")
         )
         result = existing_count.fetchone()
         

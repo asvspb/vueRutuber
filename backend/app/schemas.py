@@ -45,7 +45,7 @@ class User(UserBase):
 class MovieBase(BaseModel):
     title: str
     year: int
-    image_url: str
+    image_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     views: Optional[int] = 0
     source_url: Optional[str] = None

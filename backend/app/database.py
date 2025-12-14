@@ -4,15 +4,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-# Универсальная строка подключения. Приоритет: DATABASE_URL -> SQLITE_PATH (дефолт SQLite)
-DATABASE_URL = os.getenv("DATABASE_URL")
-SQLITE_PATH = os.getenv("SQLITE_PATH", "/app/data/db.sqlite")
-if not DATABASE_URL:
-    if SQLITE_PATH.startswith("sqlite:///"):
-        clean_path = SQLITE_PATH.replace("sqlite:///", "")
-        DATABASE_URL = f"sqlite+aiosqlite:///{clean_path}"
-    else:
-        DATABASE_URL = f"sqlite+aiosqlite:///{SQLITE_PATH}"
+# Универсальная строка подключения. Приоритет: DATABASE_URL
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:password@db:5432/vuetube")
+SYNC_DATABASE_URL = os.getenv("SYNC_DATABASE_URL", "postgresql://postgres:password@db:5432/vuetube")
 
 # Асинхронный движок и сессия
 engine = create_async_engine(
@@ -20,7 +14,6 @@ engine = create_async_engine(
     echo=True,  # Установите в False в продакшене
     pool_pre_ping=True,
 )
-
 
 AsyncSessionLocal = async_sessionmaker(
     engine,
@@ -30,8 +23,8 @@ AsyncSessionLocal = async_sessionmaker(
 
 # Синхронный движок и сессия (для миграций и других синхронных операций)
 sync_engine = create_engine(
-    f"sqlite:///{SQLITE_PATH}",
-    connect_args={"check_same_thread": False}
+    SYNC_DATABASE_URL,
+    pool_pre_ping=True
 )
 SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
 

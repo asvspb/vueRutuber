@@ -1,15 +1,33 @@
-# Директория src/services
+# src/services
 
-Эта директория содержит сервисы для взаимодействия с API и другими внешними ресурсами.
+Сервисы для взаимодействия с Backend API.
 
-## Структура
+## Файлы
 
-В этой директории могут находиться файлы, содержащие:
-- Сервисы для взаимодействия с backend API
-- Утилиты для работы с HTTP-запросами
-- Классы для управления сессией и аутентификацией
-- Обработчики ошибок при работе с API
+| Файл | Описание |
+|------|----------|
+| `api.ts` | Axios instance с `VITE_API_BASE_URL` |
+| `moviesService.ts` | API методы для работы с фильмами |
 
-## Для ИИ агентов
+## api.ts
 
-При внесении изменений в файлы проекта, пожалуйста, обновляйте этот README.md файл, чтобы отразить новые изменения в структуре или содержимом директории. Укажите, какие файлы были добавлены, изменены или удалены, и кратко опишите назначение этих изменений.
+```typescript
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api'
+})
+
+export default api
+```
+
+## moviesService.ts
+
+```typescript
+// Методы
+getMovies(skip?: number, limit?: number): Promise<Movie[]>
+getMovieById(id: number): Promise<Movie>
+createMovie(movie: MovieCreate): Promise<Movie>
+updateMovie(id: number, movie: MovieUpdate): Promise<Movie>
+deleteMovie(id: number): Promise<void>
+```

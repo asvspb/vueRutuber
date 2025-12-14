@@ -29,8 +29,8 @@ class Movie(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)           # Название фильма
     year = Column(Integer)                       # Год выпуска
-    image_url = Column(String)                   # URL изображения
-    thumbnail_url = Column(String)               # URL миниатюры
+    image_url = Column(String, nullable=True)    # URL изображения (может быть NULL)
+    thumbnail_url = Column(String, nullable=True) # URL миниатюры (может быть NULL)
     views = Column(Integer, default=0)           # Количество просмотров
     added_at = Column(DateTime, default=func.now()) # Дата добавления
     source_url = Column(String)                  # Исходный URL

@@ -18,11 +18,28 @@ def get_rutube_videos_data(db_path: str = "backend/data/rutube_videos.db") -> Li
     """
     Извлечение данных из rutube_videos.db
     """
-    if not os.path.exists(db_path):
-        print(f"База данных {db_path} не найдена")
+    # Проверяем стандартный путь, а также путь в контейнере
+    possible_paths = [
+        db_path,  # стандартный путь
+        "data/rutube_videos.db",  # путь в контейнере относительно /app
+        "/app/data/rutube_videos.db",  # абсолютный путь в контейнере
+        "../data/rutube_videos.db",  # путь из подкаталога app
+        "../../data/rutube_videos.db"  # путь из подкаталога app
+    ]
+
+    actual_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            actual_path = path
+            break
+
+    if actual_path is None:
+        print(f"База данных {db_path} не найдена. Проверенные пути: {possible_paths}")
         return []
-    
-    conn = sqlite3.connect(db_path)
+
+    print(f"Найдена база данных: {actual_path}")
+
+    conn = sqlite3.connect(actual_path)
     cursor = conn.cursor()
     
     # Получаем все видео из базы
@@ -150,7 +167,11 @@ async def import_rutube_data_to_movies():
     Импорт данных из rutube_videos.db в таблицу movies
     """
     # Получаем данные из rutube_videos.db
-    rutube_videos = get_rutube_videos_data()
+    # Используем правильный путь к файлу в контейнере
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(current_dir, "..", "..", "data", "rutube_videos.db")
+    rutube_videos = get_rutube_videos_data(db_path)
     
     if not rutube_videos:
         print("Нет данных для импорта из rutube_videos.db")
@@ -162,8 +183,9 @@ async def import_rutube_data_to_movies():
         # Проверяем, есть ли уже фильмы с такими source_url
         existing_source_urls = []
         for video in rutube_videos:
+            from sqlalchemy import text
             existing_movie = await db.execute(
-                "SELECT id FROM movies WHERE source_url = :source_url",
+                text("SELECT id FROM movies WHERE source_url = :source_url"),
                 {"source_url": video['source_url']}
             )
             result = existing_movie.fetchone()

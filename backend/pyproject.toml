@@ -10,9 +10,11 @@ python = "^3.12"
 fastapi = "*"
 "uvicorn" = {version = "*", extras = ["standard"]}
 redis = "*"
-aiosqlite = "*"
+asyncpg = "*"
+psycopg2-binary = "*"
 python-dotenv = "*"
 httpx = "*"
+aiohttp = "*"
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.44"}
 selenium = "*"
 webdriver-manager = "*"

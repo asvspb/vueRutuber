@@ -1,55 +1,141 @@
 <template>
-  <div class="movie-list">
-    <h2>Фильмы</h2>
-    
-    <div v-if="loading" class="loading">
-      Загрузка...
-    </div>
-    
-    <div v-else-if="error" class="error">
-      Ошибка: {{ error.message || error }}
-    </div>
-    
-    <div v-else class="movies-grid">
-      <div 
-        v-for="movie in movies" 
-        :key="movie.id" 
-        class="movie-card"
-        @click="selectMovie(movie)"
+  <v-container fluid class="movie-list pa-4">
+    <v-row class="mb-4">
+      <v-col>
+        <h2 class="text-h4 font-weight-bold">🎬 Фильмы с Rutube</h2>
+        <p class="text-subtitle-1 text-grey">Всего загружено: {{ movies.length }} фильмов</p>
+      </v-col>
+    </v-row>
+
+    <!-- Загрузка -->
+    <v-row v-if="loading" justify="center" class="my-10">
+      <v-col cols="auto">
+        <v-progress-circular
+          indeterminate
+          color="primary"
+          size="64"
+        ></v-progress-circular>
+        <p class="text-center mt-4">Загрузка фильмов...</p>
+      </v-col>
+    </v-row>
+
+    <!-- Ошибка -->
+    <v-alert
+      v-else-if="error"
+      type="error"
+      variant="tonal"
+      class="mb-4"
+    >
+      <v-alert-title>Ошибка загрузки</v-alert-title>
+      {{ error.message || error }}
+    </v-alert>
+
+    <!-- Сетка фильмов -->
+    <v-row v-else>
+      <v-col
+        v-for="movie in movies"
+        :key="movie.id"
+        cols="12"
+        sm="6"
+        md="4"
+        lg="3"
+        xl="2"
       >
-        <img 
-          :src="movie.thumbnail_url || movie.image_url" 
-          :alt="movie.title"
-          class="movie-image"
-          @error="onImageError"
+        <v-card
+          class="movie-card h-100"
+          elevation="2"
+          hover
+          @click="selectMovie(movie)"
         >
-        <div class="movie-info">
-          <h3 class="movie-title">{{ movie.title }}</h3>
-          <p class="movie-year">Год: {{ movie.year }}</p>
-          <p class="movie-views">Просмотры: {{ movie.views }}</p>
-          <p class="movie-genre" v-if="movie.genre">Жанр: {{ movie.genre }}</p>
-        </div>
-      </div>
-    
-    <!-- Кнопки пагинации -->
-    <div v-if="!loading && movies.length > 0" class="pagination">
-      <button 
-        @click="previousPage" 
-        :disabled="currentPage === 0"
-        class="pagination-btn"
-      >
-        Назад
-      </button>
-      <span class="page-info">Страница {{ currentPage + 1 }}</span>
-      <button 
-        @click="nextPage" 
-        class="pagination-btn"
-      >
-        Вперед
-      </button>
-    </div>
-  </div>
-  </div>
+          <v-img
+            :src="movie.thumbnail_url || movie.image_url"
+            :alt="movie.title"
+            height="200"
+            cover
+            class="bg-grey-lighten-2"
+          >
+            <template v-slot:error>
+              <v-img
+                src="https://via.placeholder.com/300x200/cccccc/666666?text=Нет+изображения"
+                height="200"
+                cover
+              ></v-img>
+            </template>
+          </v-img>
+
+          <v-card-title class="text-subtitle-1 font-weight-bold text-wrap">
+            {{ movie.title }}
+          </v-card-title>
+
+          <v-card-text class="pb-2">
+            <div class="d-flex flex-column gap-1">
+              <v-chip
+                v-if="movie.year"
+                size="small"
+                color="primary"
+                variant="tonal"
+                class="mr-1"
+              >
+                <v-icon start size="small">mdi-calendar</v-icon>
+                {{ movie.year }}
+              </v-chip>
+
+              <v-chip
+                v-if="movie.genre"
+                size="small"
+                color="secondary"
+                variant="tonal"
+                class="mr-1"
+              >
+                <v-icon start size="small">mdi-tag</v-icon>
+                {{ movie.genre }}
+              </v-chip>
+
+              <div class="text-caption text-grey mt-2">
+                <v-icon size="small" class="mr-1">mdi-eye</v-icon>
+                {{ formatViews(movie.views) }} просмотров
+              </div>
+
+              <div v-if="movie.duration" class="text-caption text-grey">
+                <v-icon size="small" class="mr-1">mdi-clock-outline</v-icon>
+                {{ movie.duration }}
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Пагинация -->
+    <v-row v-if="!loading && movies.length > 0" justify="center" class="mt-6">
+      <v-col cols="auto">
+        <v-btn
+          variant="outlined"
+          color="primary"
+          class="mr-2"
+          :disabled="currentPage === 0"
+          @click="previousPage"
+        >
+          <v-icon start>mdi-chevron-left</v-icon>
+          Назад
+        </v-btn>
+
+        <v-chip color="primary" variant="flat" class="mx-2">
+          Страница {{ currentPage + 1 }}
+        </v-chip>
+
+        <v-btn
+          variant="outlined"
+          color="primary"
+          class="ml-2"
+          @click="nextPage"
+        >
+          Вперед
+          <v-icon end>mdi-chevron-right</v-icon>
+        </v-btn>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup lang="ts">
@@ -62,7 +148,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  limit: 10
+  limit: 100
 })
 
 // Определяем emit
@@ -99,9 +185,16 @@ const previousPage = async () => {
   }
 }
 
-const onImageError = (event: Event) => {
-  const target = event.target as HTMLImageElement
-  target.src = 'https://via.placeholder.com/300x400/cccccc/666666?text=Нет+изображения'
+// Форматирование просмотров
+const formatViews = (views: number | null | undefined): string => {
+  if (!views) return '0'
+  if (views >= 1000000) {
+    return (views / 1000000).toFixed(1) + 'M'
+  }
+  if (views >= 1000) {
+    return (views / 1000).toFixed(1) + 'K'
+  }
+  return views.toString()
 }
 
 // Загружаем фильмы при монтировании компонента
@@ -111,95 +204,26 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.movie-list {
-  padding: 20px;
-}
-
-.loading, .error {
-  text-align: center;
-  padding: 20px;
-  font-size: 18px;
-}
-
-.error {
-  color: #f44336;
-}
-
-.movies-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
 .movie-card {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  background: white;
+  transition: transform 0.2s ease-in-out;
 }
 
 .movie-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
 }
 
-.movie-image {
- width: 100%;
-  height: 300px;
-  object-fit: cover;
-  display: block;
-}
-
-.movie-info {
-  padding: 15px;
-}
-
-.movie-title {
- margin: 0 0 10px 0;
-  font-size: 16px;
-  font-weight: bold;
+.text-wrap {
+  word-break: break-word;
+  white-space: normal;
   line-height: 1.3;
 }
 
-.movie-year,
-.movie-views,
-.movie-genre {
-  margin: 5px 0;
-  font-size: 14px;
- color: #666;
+.h-100 {
+  height: 100%;
 }
 
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.pagination-btn {
-  padding: 8px 16px;
-  border: 1px solid #ccc;
-  background: white;
- border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background: #f5f5;
-}
-
-.pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-info {
-  font-size: 14px;
-  color: #666;
+.gap-1 {
+  gap: 4px;
 }
 </style>

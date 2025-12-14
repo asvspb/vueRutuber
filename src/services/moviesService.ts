@@ -2,7 +2,7 @@ import api from './api.js'
 
 export const moviesService = {
   // Получить все фильмы
-  async getAll(skip: number = 0, limit: number = 10) {
+  async getAll(skip: number = 0, limit: number = 100) {
     const response = await api.get('/movies', { params: { skip, limit } })
     return response.data
  },
