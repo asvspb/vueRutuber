@@ -9,6 +9,7 @@ interface Movie {
   thumbnail_url: string | null
   views: number
   added_at: string
+  channel_added_at?: string
   source_url: string | null
   duration: string | null
   description: string | null

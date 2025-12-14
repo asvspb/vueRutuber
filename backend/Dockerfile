@@ -28,9 +28,9 @@ WORKDIR /build
 COPY backend/pyproject.toml backend/poetry.lock* ./
 COPY backend/app ./app
 
-# Устанавливаем зависимости
+# Устанавливаем зависимости (--no-root чтобы не устанавливать сам проект)
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --only main
+    && poetry install --no-interaction --no-ansi --only main --no-root
 
 # Этап 2: Runtime - финальный образ
 FROM python:3.12-slim as runtime

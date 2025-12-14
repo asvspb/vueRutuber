@@ -72,11 +72,13 @@ class MovieUpdate(BaseModel):
     genre: Optional[str] = None
     rating: Optional[float] = None
     is_active: Optional[bool] = None
+    channel_added_at: Optional[datetime] = None
 
 
 class Movie(MovieBase):
     id: int
     added_at: Optional[datetime] = None
+    channel_added_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

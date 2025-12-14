@@ -32,7 +32,8 @@ class Movie(Base):
     image_url = Column(String, nullable=True)    # URL изображения (может быть NULL)
     thumbnail_url = Column(String, nullable=True) # URL миниатюры (может быть NULL)
     views = Column(Integer, default=0)           # Количество просмотров
-    added_at = Column(DateTime, default=func.now()) # Дата добавления
+    added_at = Column(DateTime, default=func.now()) # Дата добавления в систему
+    channel_added_at = Column(DateTime(timezone=True), nullable=True, index=True) # Дата публикации на Rutube
     source_url = Column(String)                  # Исходный URL
     duration = Column(String)                    # Длительность
     description = Column(Text)                   # Описание

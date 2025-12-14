@@ -100,6 +100,11 @@
                 <v-icon size="small" class="mr-1">mdi-clock-outline</v-icon>
                 {{ movie.duration }}
               </div>
+
+              <div v-if="movie.channel_added_at" class="text-caption text-grey">
+                <v-icon size="small" class="mr-1">mdi-calendar-plus</v-icon>
+                {{ formatDate(movie.channel_added_at) }}
+              </div>
             </div>
           </v-card-text>
         </v-card>
@@ -195,6 +200,23 @@ const formatViews = (views: number | null | undefined): string => {
     return (views / 1000).toFixed(1) + 'K'
   }
   return views.toString()
+}
+
+// Форматирование даты добавления
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+
+  const date = new Date(dateString)
+
+  // Проверка валидности даты
+  if (isNaN(date.getTime())) return ''
+
+  // Форматирование: "15 дек 2024"
+  return date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
 }
 
 // Загружаем фильмы при монтировании компонента

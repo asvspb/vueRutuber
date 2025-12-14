@@ -75,6 +75,19 @@ def extract_year_from_date(date_str):
         return datetime.now().year
 
 
+def parse_channel_added_at(date_str):
+    """Parse created_ts from Rutube API to datetime with timezone."""
+    if not date_str:
+        return None
+
+    try:
+        # Parse ISO format with Z/UTC handling
+        dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        return dt
+    except:
+        return None
+
+
 def format_duration(seconds):
     """Convert duration in seconds to HH:MM:SS string format."""
     if not seconds or seconds == 0:
@@ -120,6 +133,7 @@ async def save_videos_to_db(videos, source_name="Rutube API"):
                     'genre': video.get('category', 'Видео'),
                     'rating': None,
                     'is_active': True,
+                    'channel_added_at': parse_channel_added_at(video.get('publication_date', '')),
                 }
                 
                 # Create new movie object and add to database
