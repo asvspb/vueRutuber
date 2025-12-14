@@ -1,16 +1,31 @@
-# Директория backend/app
+# backend/app
 
-Эта директория содержит основной код серверного приложения на FastAPI.
+Основной код FastAPI приложения.
 
-## Структура
+## Файлы
 
-- `main.py` - Входная точка приложения, определяет маршруты и настройки
-- `models.py` - Модели базы данных, описывающие структуру таблиц (Item, User)
-- `schemas.py` - Pydantic схемы для валидации входящих и исходящих данных
-- `crud.py` - Функции для выполнения операций CRUD (Create, Read, Update, Delete)
-- `database.py` - Настройки подключения к базе данных и сессии (поддержка SQLite и PostgreSQL)
-- `rutube_scraper.py` - Скрипт для скрейпинга видео с Rutube и сохранения в базу данных
+| Файл | Описание |
+|------|----------|
+| `main.py` | FastAPI app, роуты, lifespan events, background tasks |
+| `models.py` | SQLAlchemy модели: Movie |
+| `schemas.py` | Pydantic схемы для валидации |
+| `crud.py` | CRUD операции для Movie |
+| `database.py` | Async PostgreSQL (asyncpg) конфигурация |
+| `rutube_api_scraper.py` | Скрапер Rutube API (aiohttp) |
 
-## Для ИИ агентов
+## Модель Movie
 
-При внесении изменений в файлы проекта, пожалуйста, обновляйте этот README.md файл, чтобы отразить новые изменения в структуре или содержимом директории. Укажите, какие файлы были добавлены, изменены или удалены, и кратко опишите назначение этих изменений.
+```python
+class Movie:
+    id: int
+    title: str
+    year: int
+    thumbnail_url: str
+    views: int
+    duration: str          # формат "HH:MM:SS"
+    genre: str
+    description: str
+    source_url: str
+    added_at: datetime
+    is_active: bool
+```

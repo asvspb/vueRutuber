@@ -1,151 +1,138 @@
-# Архитектура микро-сервисов для передачи данных фильмов на фронтенд
+# Архитектура vueRutube
 
-## Текущий анализ проекта
+## Текущая реализация
 
-Проект уже имеет базовую структуру:
-- **Backend**: FastAPI с SQLite и Redis
-- **Frontend**: Vue.js с TypeScript
-- **Существующие модели**: Item и User
-- **Скрапер**: для сбора данных с Rutube
+```
+┌─────────────────┐     ┌─────────────────┐
+│   Frontend      │────▶│   Backend       │
+│   Vue.js 3      │     │   FastAPI       │
+│   Vuetify 3     │     │   Port: 3535    │
+│   Port: 4173    │     └────────┬────────┘
+└─────────────────┘              │
+                    ┌────────────┼────────────┐
+                    ▼            ▼            ▼
+              ┌──────────┐ ┌──────────┐ ┌──────────┐
+              │PostgreSQL│ │  Redis   │ │  Logs    │
+              └──────────┘ └──────────┘ └──────────┘
+                    ▲
+                    │
+              ┌──────────┐
+              │ Rutube   │
+              │   API    │
+              └──────────┘
+```
 
-## Требования к системе
+## Компоненты
 
-### Функциональные требования
-- Передача метаданных фильмов на фронтенд
-- Данные: название фильма, год выпуска, изображение, дата добавления, количество просмотров
-- Без авторизации пользователей
-- Поддержка пагинации и фильтрации
+### Frontend (Vue.js 3 + Vuetify 3)
+- **Порт**: 4173
+- **Технологии**: Vue 3, TypeScript, Vuetify 3, Pinia, Vue Router 4, Vite
+- **Компоненты**: MovieList.vue (v-card, v-chip, v-btn)
+- **API клиент**: Axios с `VITE_API_BASE_URL`
 
-### Нефункциональные требования
-- Высокая доступность
-- Масштабируемость
-- Производительность
-- Простота поддержки
+### Backend (FastAPI)
+- **Порт**: 3535
+- **Технологии**: FastAPI, SQLAlchemy (async), Pydantic v2, aiohttp
+- **Модель**: Movie (title, year, thumbnail_url, views, duration, genre, description)
+- **Скрапер**: `rutube_api_scraper.py` — сбор данных с Rutube API
 
-## Архитектура микро-сервисов
+### PostgreSQL
+- **Порт**: 5432
+- **Драйвер**: asyncpg
+- **Таблица**: movies
 
-### Предлагаемая схема из 3 микро-сервисов:
+### Redis
+- **Порт**: 6379
+- **Использование**: кэширование, счётчики
 
-1. **Data Scraper Service** - сбор данных с внешних источников
-2. **Metadata Service** - управление метаданными фильмов
-3. **API Gateway** - единая точка входа для фронтенда
-
-### Схема данных для фильмов
+## Модель данных Movie
 
 ```python
 class Movie(Base):
     __tablename__ = "movies"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)           # Название фильма
-    year = Column(Integer)                       # Год выпуска
-    image_url = Column(String)                   # URL изображения
-    thumbnail_url = Column(String)               # URL миниатюры
-    views = Column(Integer, default=0)           # Количество просмотров
-    added_at = Column(DateTime, default=func.now()) # Дата добавления
-    source_url = Column(String)                  # Исходный URL
-    duration = Column(String)                    # Длительность
-    description = Column(Text)                   # Описание
-    genre = Column(String)                       # Жанр
-    rating = Column(Float)                       # Рейтинг
-    is_active = Column(Boolean, default=True)    # Активность
+    title = Column(String, index=True)
+    year = Column(Integer)
+    thumbnail_url = Column(String)
+    views = Column(Integer, default=0)
+    added_at = Column(DateTime, default=func.now())
+    source_url = Column(String)
+    duration = Column(String)           # формат "HH:MM:SS"
+    description = Column(Text)
+    genre = Column(String)
+    is_active = Column(Boolean, default=True)
 ```
 
-## Диаграмма взаимодействия сервисов
+## Rutube API Scraper
 
-```mermaid
-graph TB
-    subgraph "Внешние источники"
-        Rutube[Rutube API]
-        Other[Другие источники]
-    end
-    
-    subgraph "Микро-сервисы"
-        Scraper[Data Scraper Service]
-        Metadata[Metadata Service]
-        Gateway[API Gateway]
-    end
-    
-    subgraph "Базы данных"
-        DB[(SQLite/PostgreSQL)]
-        Cache[(Redis Cache)]
-    end
-    
-    subgraph "Фронтенд"
-        Frontend[Vue.js Frontend]
-    end
-    
-    Rutube --> Scraper
-    Other --> Scraper
-    Scraper --> Metadata
-    Metadata --> DB
-    Metadata --> Cache
-    Frontend --> Gateway
-    Gateway --> Metadata
-    Gateway --> Cache
+Автоматический сбор данных с официального Rutube API:
+
+```python
+# API endpoint
+https://rutube.ru/api/video/person/{CHANNEL_ID}/?page=1&page_size=20
+
+# Получаемые данные
+- title, description
+- thumbnail_url
+- hits (просмотры)
+- duration (секунды → HH:MM:SS)
+- category.name (жанр)
+- created_ts (дата → год)
 ```
 
-## Детальная архитектура
+**Расписание**: раз в 24 часа (asyncio background task в `main.py`)
 
-### 1. Data Scraper Service
-- **Назначение**: Сбор данных с Rutube и других источников
-- **Технологии**: Python, FastAPI, Selenium/BeautifulSoup
-- **Функции**:
-  - Периодический сбор данных
-  - Обработка и нормализация данных
-  - Отправка данных в Metadata Service
+## API Endpoints
 
-### 2. Metadata Service
-- **Назначение**: Управление метаданными фильмов
-- **Технологии**: Python, FastAPI, SQLAlchemy
-- **Функции**:
-  - CRUD операции с фильмами
-  - Кэширование данных в Redis
-  - Поиск и фильтрация
-  - Пагинация
+### Movies
+```
+GET  /api/movies/?skip=0&limit=20  # Список с пагинацией
+GET  /api/movies/{id}              # По ID
+GET  /api/movies/year/{year}       # По году
+GET  /api/movies/genre/{genre}     # По жанру
+POST /api/movies/                  # Создать
+PUT  /api/movies/{id}              # Обновить
+DELETE /api/movies/{id}            # Удалить
+```
 
-### 3. API Gateway
-- **Назначение**: Единая точка входа для фронтенда
-- **Технологии**: FastAPI
-- **Функции**:
-  - Маршрутизация запросов
-  - Агрегация данных
-  - Кэширование
-  - Rate limiting
+### Scraper
+```
+POST /api/scrape/rutube?limit=100  # Запуск скрапера вручную
+```
 
-## План реализации
+### Health
+```
+GET /api/health                    # Статус сервисов
+```
 
-### Этап 1: Рефакторинг существующего кода
-- Создание моделей данных для фильмов
-- Обновление схем Pydantic
-- Настройка миграций базы данных
+## Docker Compose
 
-### Этап 2: Разделение на микро-сервисы
-- Выделение Data Scraper Service
-- Создание Metadata Service
-- Настройка API Gateway
+```yaml
+services:
+  frontend:
+    build: .
+    ports: ["4173:4173"]
 
-### Этап 3: Интеграция и тестирование
-- Настройка взаимодействия между сервисами
-- Тестирование производительности
-- Документация API
+  backend:
+    build: ./backend
+    ports: ["3535:3535"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/vuetube
+      REDIS_HOST: redis
 
-### Этап 4: Деплоймент
-- Настройка Docker контейнеров
-- Конфигурация оркестрации
-- Мониторинг и логирование
+  db:
+    image: postgres:15-alpine
+    ports: ["5432:5432"]
 
-## Преимущества предложенной архитектуры
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+```
 
-1. **Масштабируемость**: Каждый сервис можно масштабировать независимо
-2. **Отказоустойчивость**: Проблемы в одном сервисе не влияют на другие
-3. **Гибкость**: Легко добавлять новые источники данных
-4. **Производительность**: Кэширование и оптимизированные запросы
-5. **Поддержка**: Проще поддерживать и развивать отдельные компоненты
+## Масштабирование
 
-## Следующие шаги
-
-1. Утвердить архитектуру
-2. Начать реализацию с рефакторинга моделей данных
-3. Постепенно разделять функциональность на микро-сервисы
-4. Тестировать взаимодействие между компонентами
+Текущая архитектура поддерживает:
+- Горизонтальное масштабирование backend (несколько реплик)
+- Отдельное масштабирование PostgreSQL и Redis
+- Добавление новых источников данных (других каналов Rutube)

@@ -1,152 +1,147 @@
-# Архитектура микро-сервисов для Rutube проекта
+# vueRutube — Архитектура
 
 ## Обзор
 
-В этом проекте реализована архитектура микро-сервисов для передачи данных фильмов на фронтенд. Архитектура состоит из следующих компонентов:
+Веб-приложение для отображения видео с Rutube с автоматическим сбором данных.
 
-1. **Backend сервис** (FastAPI) - предоставляет API для работы с данными фильмов
-2. **Frontend сервис** (Vue.js) - отображает данные фильмов на клиенте
-3. **База данных** (SQLite) - хранит данные фильмов
-4. **Кэш** (Redis) - обеспечивает быстрый доступ к часто запрашиваемым данным
+### Компоненты
+
+| Сервис | Технология | Порт |
+|--------|------------|------|
+| Frontend | Vue.js 3 + Vuetify 3 | 4173 |
+| Backend | FastAPI (async) | 3535 |
+| Database | PostgreSQL | 5432 |
+| Cache | Redis | 6379 |
 
 ## Структура проекта
 
 ```
 backend/
 ├── app/
-│   ├── models.py        # Модели данных (включая Movie)
-│   ├── schemas.py       # Pydantic схемы (включая Movie)
-│   ├── crud.py          # CRUD операции (включая Movie)
-│   ├── main.py          # Основное приложение FastAPI с эндпоинтами для фильмов
-│   ├── database.py      # Настройки базы данных
-│   ├── rutube_scraper.py # Скрапер для получения данных с Rutube
-│   └── seed_movies.py   # Скрипт для заполнения базы тестовыми данными
-├── seed_db.py           # Скрипт для инициализации базы данных
+│   ├── main.py               # FastAPI app, роуты, background tasks
+│   ├── models.py             # SQLAlchemy: Movie
+│   ├── schemas.py            # Pydantic схемы
+│   ├── crud.py               # CRUD операции
+│   ├── database.py           # Async PostgreSQL (asyncpg)
+│   └── rutube_api_scraper.py # Rutube API скрапер (aiohttp)
+├── pyproject.toml
+└── requirements.txt
 ```
 
 ```
 src/
 ├── components/
-│   └── MovieList.vue    # Компонент для отображения списка фильмов
+│   └── MovieList.vue         # Vuetify компонент (v-card, v-chip)
 ├── composables/
-│   └── useMovies.ts     # Композабл для работы с фильмами
+│   └── useMovies.ts          # Композабл для работы с фильмами
 ├── services/
-│   └── moviesService.ts # Сервис для API запросов к фильмам
+│   ├── api.ts                # Axios instance
+│   └── moviesService.ts      # API методы
+└── plugins/
+    └── vuetify.ts            # Vuetify конфигурация
 ```
 
-## Модель данных фильма
+## Модель Movie
 
-Модель `Movie` включает следующие поля:
-- `id` - уникальный идентификатор
-- `title` - название фильма
-- `year` - год выпуска
-- `image_url` - URL изображения
-- `thumbnail_url` - URL миниатюры
-- `views` - количество просмотров
-- `added_at` - дата добавления
-- `source_url` - исходный URL
-- `duration` - длительность
-- `description` - описание
-- `genre` - жанр
-- `rating` - рейтинг
-- `is_active` - статус активности
+```python
+class Movie:
+    id: int
+    title: str
+    year: int
+    thumbnail_url: str
+    views: int
+    duration: str          # формат "HH:MM:SS"
+    genre: str
+    description: str
+    source_url: str
+    added_at: datetime
+    is_active: bool
+```
 
-## API эндпоинты для фильмов
+## API Endpoints
 
-- `POST /movies/` - создать фильм
-- `GET /movies/` - получить список фильмов
-- `GET /movies/{id}` - получить фильм по ID
-- `PUT /movies/{id}` - обновить фильм
-- `DELETE /movies/{id}` - удалить фильм (логическое удаление)
-- `GET /movies/year/{year}` - получить фильмы по году
-- `GET /movies/genre/{genre}` - получить фильмы по жанру
-- `POST /movies/{id}/increment-views` - увеличить количество просмотров
+### Movies
+```
+GET  /api/movies/?skip=0&limit=20  # Список с пагинацией
+GET  /api/movies/{id}              # По ID
+GET  /api/movies/year/{year}       # По году
+GET  /api/movies/genre/{genre}     # По жанру
+POST /api/movies/                  # Создать
+PUT  /api/movies/{id}              # Обновить
+DELETE /api/movies/{id}            # Удалить
+```
 
-## Запуск приложения
+### Scraper
+```
+POST /api/scrape/rutube?limit=100  # Запуск скрапера
+```
 
-### Запуск backend
+### Health
+```
+GET /api/health                    # Статус сервисов
+```
 
-1. Убедитесь, что установлены зависимости:
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   ```
+## Запуск
 
-2. Установите переменные окружения в файле `.env`:
-   ```
-   DATABASE_URL=sqlite+aiosqlite:///./data/db.sqlite
-   SQLITE_PATH=/app/data/db.sqlite
-   REDIS_HOST=redis
-   REDIS_PORT=6379
-   CORS_ORIGINS=http://localhost:4173,http://localhost:5173
-   ```
+### Docker (рекомендуется)
 
-3. Инициализируйте базу данных и заполните тестовыми данными:
-   ```bash
-   python seed_db.py
-   ```
+```bash
+docker compose up --build -d
+```
 
-4. Запустите backend:
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+### Локально
 
-### Запуск frontend
+```bash
+# Backend
+cd backend
+poetry install
+poetry run uvicorn app.main:app --reload --port 3535
 
-1. Установите зависимости:
-   ```bash
-   npm install
-   ```
+# Frontend
+npm install
+npm run dev
+```
 
-2. Запустите frontend:
-   ```bash
-   npm run dev
-   ```
+## Rutube Scraper
 
-## Скрапинг данных
+Автоматический сбор данных с Rutube API:
 
-Для получения данных с Rutube используется скрапер `rutube_scraper.py`, который:
-- Собирает информацию о видео с Rutube
-- Извлекает метаданные (название, URL, изображение, длительность, просмотры)
-- Сохраняет данные в базу данных `rutube_videos.db`
+```python
+# API endpoint
+https://rutube.ru/api/video/person/{CHANNEL_ID}/?page=1&page_size=20
 
-Для импорта данных из `rutube_videos.db` в основную таблицу `movies` используется скрипт `import_rutube_data.py`, который:
-- Извлекает видео из `rutube_videos.db`
-- Преобразует данные в формат, подходящий для основной модели `Movie`
-- Импортирует только уникальные видео (избегая дубликатов)
-- Обрабатывает различные форматы дат и просмотров
+# Расписание: раз в 24 часа (asyncio background task)
+```
 
-## Фронтенд компоненты
+Ручной запуск:
+```bash
+curl -X POST "http://localhost:3535/api/scrape/rutube?limit=100"
+```
 
-### MovieList.vue
-Компонент для отображения списка фильмов с:
-- Пагинацией
-- Отображением изображений
-- Информацией о фильме (название, год, просмотры, жанр)
-- Обработкой ошибок изображений
+## Переменные окружения
+
+```yaml
+# Backend
+DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/vuetube
+REDIS_HOST: redis
+REDIS_PORT: 6379
+CORS_ORIGINS: http://localhost,http://localhost:4173,http://localhost:3535
+RUTUBE_CHANNEL_ID: 32869212
+
+# Frontend (build-time)
+VITE_API_BASE_URL: http://localhost:3535/api
+```
+
+## Frontend компоненты
+
+### MovieList.vue (Vuetify 3)
+- `v-container`, `v-row`, `v-col` — сетка
+- `v-card`, `v-img` — карточки фильмов
+- `v-chip` — метки (год, жанр, просмотры)
+- `v-btn` — кнопки пагинации
+- `v-progress-circular` — индикатор загрузки
 
 ### useMovies.ts
-Композабл, предоставляющий функции:
-- `fetchMovies()` - получить список фильмов
-- `fetchMovieById()` - получить фильм по ID
-- `createMovie()` - создать фильм
-- `updateMovie()` - обновить фильм
-- `deleteMovie()` - удалить фильм
-- `incrementMovieViews()` - увеличить просмотры
-
-## Масштабируемость
-
-Архитектура спроектирована с учетом масштабируемости:
-- Каждый сервис может масштабироваться независимо
-- Использование кэша Redis для ускорения доступа к данным
-- Возможность добавления новых источников данных
-- Поддержка фильтрации и поиска
-
-## Дальнейшие улучшения
-
-1. Добавить аутентификацию и авторизацию
-2. Реализовать систему комментариев
-3. Добавить систему рекомендаций
-4. Интегрировать CDN для хранения медиафайлов
-5. Добавить систему тегов и категорий
-6. Реализовать систему оценок пользователей
+```typescript
+const { movies, loading, error, fetchMovies } = useMovies()
+```

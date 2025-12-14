@@ -1,225 +1,160 @@
-# Инструкция для ИИ-агента по работе в проекте VueExpert
+# Инструкция для ИИ-агента: vueRutube
 
-## Общая информация о проекте
+## Архитектура проекта
 
-vueRutuber - это современное веб-приложение, разработанное с использованием фреймворка Vue.js. Проект включает в себя фронтенд на Vue 3 с использованием Vite и SCSS, а также бэкенд на FastAPI с интеграцией Redis для кэширования и хранения данных.
+```
+┌─────────────────┐     ┌─────────────────┐
+│   Frontend      │────▶│   Backend       │
+│   Vue.js 3      │     │   FastAPI       │
+│   Vuetify 3     │     │   Port: 3535    │
+│   Port: 4173    │     └────────┬────────┘
+└─────────────────┘              │
+                    ┌────────────┼────────────┐
+                    ▼            ▼            ▼
+              ┌──────────┐ ┌──────────┐ ┌──────────┐
+              │PostgreSQL│ │  Redis   │ │  Logs    │
+              └──────────┘ └──────────┘ └──────────┘
+```
 
-### Архитектура проекта
+## Стек технологий
 
-Проект состоит из следующих основных компонентов:
-- **Фронтенд**: Vue 3 приложение, собранное с помощью Vite (SPA)
-- **Бэкенд**: FastAPI сервер для обработки API‑запросов и работы с Redis и SQLite
-- **Redis**: для кэширования, счётчиков и временных данных
-- **SQLite**: для хранения структурированных данных
-- **Docker / Docker Compose**: для контейнеризации и оркестрации сервисов
+### Frontend
+- Vue.js 3 + TypeScript
+- Vuetify 3 (Material Design компоненты)
+- Pinia (state management)
+- Vue Router 4
+- Vite (сборка)
+- SCSS
+
+### Backend
+- FastAPI (async)
+- SQLAlchemy (async с asyncpg)
+- Pydantic v2
+- aiohttp (HTTP клиент для Rutube API)
+- PostgreSQL
+- Redis
 
 ## Структура проекта
 
 ```
-VueExpert/
-├── .dockerignore
-├── .gitignore
-├── docker-compose.yml
-├── Dockerfile
-├── index.html
-├── package-lock.json
-├── package.json
-├── README.md
-├── vite.config.js
-├── .qodo/
+├── docker-compose.yml          # 4 сервиса: frontend, backend, db, redis
+├── docker-compose.override.yml # Dev overrides
+├── Dockerfile                  # Frontend multi-stage build
 ├── backend/
 │   ├── Dockerfile
-│   ├── requirements.txt
-│   └── app/
-│       └── main.py
-├── docs/
-│   ├── docker_redis_plan.md
-│   ├── documentation_rules.md
-│   └── ai_developer_guide.md (текущий файл)
-└── src/
-    ├── App.vue
-    ├── main.js
-    ├── components/
-    └── styles/
+│   ├── app/
+│   │   ├── main.py             # FastAPI app, роуты, background tasks
+│   │   ├── models.py           # SQLAlchemy: Movie
+│   │   ├── schemas.py          # Pydantic схемы
+│   │   ├── crud.py             # CRUD операции
+│   │   ├── database.py         # Async PostgreSQL
+│   │   └── rutube_api_scraper.py  # Rutube API скрапер
+│   ├── pyproject.toml
+│   └── requirements.txt
+├── src/
+│   ├── components/
+│   │   └── MovieList.vue       # Главный компонент (Vuetify)
+│   ├── composables/
+│   │   └── useMovies.ts
+│   ├── services/
+│   │   ├── api.ts              # Axios instance
+│   │   └── moviesService.ts
+│   └── plugins/
+│       └── vuetify.ts
+└── docs/
 ```
 
-## Основные файлы и их назначение
+## Ключевые файлы
 
-- `package.json` - содержит зависимости и скрипты для фронтенда
-- `Dockerfile` - многоэтапная сборка для фронтенда Vue/Vite
-- `docker-compose.yml` - оркестрация всех сервисов (фронтенд, бэкенд, Redis)
-- `backend/app/main.py` - основной файл бэкенда на FastAPI
-- `backend/requirements.txt` - Python‑зависимости бэкенда
-- `backend/app/database.py` - настройки подключения к SQLite
-- `backend/app/models.py` - ORM модели для работы с SQLite
-- `backend/app/schemas.py` - Pydantic схемы для валидации данных
-- `backend/app/crud.py` - функции для создания, чтения, обновления и удаления данных в SQLite
-- `docs/documentation_rules.md` - правила ведения и обновления документации
+| Файл | Назначение |
+|------|------------|
+| `docker-compose.yml` | Конфигурация всех сервисов |
+| `Dockerfile` | Frontend: build + serve |
+| `backend/Dockerfile` | Backend: Python + FastAPI |
+| `backend/app/main.py` | API endpoints, scraper scheduler |
+| `backend/app/rutube_api_scraper.py` | Сбор данных с Rutube API |
+| `src/components/MovieList.vue` | Vuetify компонент списка фильмов |
+| `src/services/api.ts` | Axios с `VITE_API_BASE_URL` |
 
-## Работа с проектом
+## API Endpoints
 
-### Запуск проекта
+### Movies
+```
+GET  /api/movies/?skip=0&limit=20  # Список с пагинацией
+GET  /api/movies/{id}              # По ID
+GET  /api/movies/year/{year}       # По году
+GET  /api/movies/genre/{genre}     # По жанру
+POST /api/movies/                  # Создать
+PUT  /api/movies/{id}              # Обновить
+DELETE /api/movies/{id}            # Удалить
+```
 
-Проект может быть запущен двумя способами:
+### Scraper
+```
+POST /api/scrape/rutube?limit=100  # Запуск скрапера
+```
 
-1. **Через Docker Compose (рекомендуемый способ)**:
-   ```bash
-   docker-compose up --build
-   ```
-   Это запустит все сервисы: фронтенд (порт 4173), бэкенд (порт 8000) и Redis (порт 6379).
+### Health
+```
+GET /api/health                    # Статус сервисов
+```
 
-2. **Локально (без Docker)**:
-   - Установите зависимости фронтенда: `npm install`
-   - Запустите фронтенд: `npm run dev`
-   - Установите зависимости бэкенда: `cd backend && pip install -r requirements.txt`
-   - Запустите бэкенд: `uvicorn app.main:app --reload --port 8000`
+## Rutube Scraper
 
-### Основные команды
+Автоматический сбор данных с Rutube API:
+- **Endpoint**: `https://rutube.ru/api/video/person/{CHANNEL_ID}/`
+- **Интервал**: раз в 24 часа (asyncio background task)
+- **Данные**: title, thumbnail, views, duration, genre, description
 
-- `npm run dev` - запуск фронтенда в режиме разработки
-- `npm run build` - сборка фронтенда для продакшена
-- `npm run preview` - предварительный просмотр продакшен-сборки
+## Переменные окружения
 
-## Правила работы для ИИ-агентов
+```yaml
+# Backend (docker-compose.yml)
+DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/vuetube
+REDIS_HOST: redis
+REDIS_PORT: 6379
+CORS_ORIGINS: http://localhost,http://localhost:4173,http://localhost:3535
+RUTUBE_CHANNEL_ID: 32869212
 
-Этот раздел дополняет `docs/documentation_rules.md` и фокусируется на практических правилах для ИИ‑агента.
+# Frontend (Dockerfile build arg)
+VITE_API_BASE_URL: http://localhost:3535/api
+```
 
-### 1. Документация
+## Команды
 
-- Всегда читайте релевантную документацию перед изменениями (в первую очередь `docs/`, README, комментарии в коде).
-- Обновляйте документацию при изменении функциональности, API, команд запуска, инфраструктуры.
-- Строго следуйте правилам из `docs/documentation_rules.md`.
+```bash
+# Запуск
+docker compose up --build -d
 
-### 2. Изменения кода
+# Логи
+docker compose logs -f backend
 
-- Перед изменением кода ориентируйтесь на архитектуру, описанную в этом файле и в других документах.
-- При изменении поведения системы **обязательно** обновляйте связанную документацию в том же PR.
-- Поддерживайте совместимость с существующими компонентами (фронтенд, бэкенд, Redis, Docker).
+# Перезапуск
+docker compose restart backend
 
-### 3. Работа с Docker и инфраструктурой
+# Остановка
+docker compose down
+```
 
-- При изменении Docker‑конфигураций (`Dockerfile`, `backend/Dockerfile`, `docker-compose.yml`) проверяйте, что изменения не ломают запуск всех сервисов через `docker-compose up --build`.
-- При добавлении новых зависимостей:
-  - для фронтенда обновляйте `package.json` (и lock‑файл, если это требуется процессом разработки);
-  - для бэкенда обновляйте `backend/requirements.txt`.
-- При изменении конфигурации Redis учитывайте влияние на все сервисы, использующие Redis (в первую очередь бэкенд).
+## Правила для ИИ-агента
 
-### 4. Интеграция с Redis
+1. **Перед изменениями** — изучить связанные файлы через codebase-retrieval
+2. **Frontend** — использовать Vuetify компоненты (v-card, v-chip, v-btn, etc.)
+3. **Backend** — async/await, Pydantic v2, SQLAlchemy async
+4. **Docker** — проверять сборку после изменений
+5. **Зависимости** — использовать package managers (npm, poetry)
+6. **Документация** — обновлять при изменении API или архитектуры
 
-Бэкенд использует Redis для:
-- Хранения счетчиков (например, эндпоинт `/counter`)
-- Возможных сессий пользователей
-- Кэширования данных
+## Отладка
 
-При работе с Redis:
-- Используйте переменные окружения `REDIS_HOST` и `REDIS_PORT`
-- Обрабатывайте ошибки подключения к Redis
-- Следите за тем, чтобы ключи в Redis были осмысленными и не конфликтовали
+```bash
+# Проверка API
+curl http://localhost:3535/api/health
+curl http://localhost:3535/api/movies/?limit=3
 
-### 5. API и взаимодействие между сервисами
+# Логи контейнера
+docker compose logs backend --tail=50
 
-- Фронтенд ожидает, что бэкенд будет доступен по адресу `http://backend:8000` (внутри Docker) или `http://localhost:8000` (локально)
-- Переменная окружения `VITE_API_BASE_URL` устанавливает базовый URL для API вызовов (см. docs/environment_variables.md)
-- Используйте CORS-настройки из `backend/app/main.py` для разрешения запросов с фронтенда
-- Бэкенд предоставляет эндпоинты для работы с SQLite базой данных:
-  - `/items/` - CRUD операции для элементов
-  - `/users/` - CRUD операции для пользователей
-  - `/health` - проверка работоспособности сервисов (Redis и SQLite)
-
-### 6. Тестирование изменений
-
-- После внесения изменений проверяйте работоспособность всех сервисов
-- Убедитесь, что Docker-сборка проходит успешно
-- Проверяйте, что все сервисы могут взаимодействовать друг с другом
-
-### 7. Чеклист для ИИ-агента перед PR / коммитом
-
-Перед тем как считать задачу завершённой и отправлять изменения в git, ИИ‑агент должен пройти следующий чеклист:
-
-1. **Код и архитектура**
-   - [ ] Понято, какие части системы затронуты (фронтенд, бэкенд, Redis, Docker, документация).
-   - [ ] Изменения не противоречат описанной архитектуре проекта.
-
-2. **Документация**
-   - [ ] Найдены и просмотрены релевантные документы (в первую очередь в `docs/` и README).
-   - [ ] Обновлены соответствующие разделы документации, если изменилось поведение, API, команды запуска или инфраструктура.
-   - [ ] В описании PR/коммита кратко перечислено, какие документы изменены и зачем.
-
-3. **Зависимости и конфигурация**
-   - [ ] Для фронтенда при добавлении библиотек обновлён `package.json` (и при необходимости lock‑файл).
-   - [ ] Для бэкенда при добавлении библиотек обновлён `backend/requirements.txt`.
-   - [ ] При изменении портов, URL или переменных окружения обновлён `docker-compose.yml` и/или `.env`‑файлы.
-
-4. **Docker и запуск**
-   - [ ] При изменении Docker‑файлов или `docker-compose.yml` выполнена проверка сборки: `docker-compose up --build` (или явно указано, если запуск пока невозможен).
-   - [ ] В случае локального запуска проверено, что `npm run dev` и `uvicorn app.main:app --reload --port 8000` работают с учётом внесённых изменений.
-
-5. **Интеграция и тестирование**
-   - [ ] Проверено, что фронтенд может обращаться к бэкенду по `VITE_API_BASE_URL`.
-   - [ ] Проверено, что бэкенд может подключиться к Redis (например, через `/health`).
-   - [ ] Нет очевидных ошибок в логах при запуске сервисов.
-
-### 8. Примеры типичных задач
-
-#### Добавление нового API эндпоинта:
-1. Добавьте эндпоинт в `backend/app/main.py`
-2. При необходимости обновите документацию
-3. При необходимости добавьте фронтенд-компонент для взаимодействия с эндпоинтом
-
-#### Изменение стилей:
-1. Внесите изменения в соответствующие SCSS файлы в `src/styles/`
-2. Используйте переменные из `variables.scss` и миксины из `mixins.scss`
-3. Проверьте, что изменения не нарушают существующую стилизацию
-
-#### Добавление нового компонента:
-1. Создайте компонент в `src/components/`
-2. Следуйте структуре и стилю существующих компонентов
-3. При необходимости обновите документацию в `src/components/README.md`
-
-#### Добавление новой модели данных для SQLite:
-1. Определите модель в `backend/app/models.py` с использованием SQLAlchemy
-2. Создайте соответствующую схему в `backend/app/schemas.py` с использованием Pydantic
-3. Реализуйте CRUD-операции в `backend/app/crud.py`
-4. Добавьте эндпоинты в `backend/app/main.py`
-
-## Отладка и устранение неполадок
-
-### Распространенные проблемы:
-- Порт 4173 или 8000 уже используется - остановите другие процессы или измените порты
-- Ошибка подключения к Redis - проверьте настройки в `docker-compose.yml`
-- Ошибка CORS - проверьте настройки в `backend/app/main.py`
-- Ошибка запуска фронтенда в Docker: убедитесь, что в Dockerfile установлены необходимые зависимости для отдачи статики (используется `serve` вместо `vite preview`)
-
-### Полезные команды для отладки:
-- `docker-compose logs` - просмотр логов всех сервисов
-- `docker-compose exec redis redis-cli` - доступ к Redis CLI
-- `docker-compose down && docker-compose up --build` - полный перезапуск сервисов
-
-### 9. Подготовка проекта к запуску в Docker
-
-Проект полностью готов к запуску в Docker-контейнерах. Все необходимые конфигурации находятся в файлах:
-
-- `Dockerfile` - для фронтенда Vue/Vite
-- `backend/Dockerfile` - для бэкенда FastAPI
-- `docker-compose.yml` - для оркестрации всех сервисов (фронтенд, бэкенд, Redis)
-
-После внесения изменений в приложение, обязательно проверьте его работоспособность в Docker-контейнерах:
-
-1. Соберите фронтенд-образ: `docker build -t vuExpert-frontend .`
-2. Проверьте запуск фронтенда: `docker run --rm -p 4173:4173 vuExpert-frontend`
-3. Убедитесь, что backend также собирается: `docker build -t vuExpert-backend ./backend`
-4. Проверьте запуск всех сервисов через docker-compose (если доступна более новая версия Docker API):
-   `docker-compose up --build`
-
-При проверке работоспособности убедитесь, что:
-- Фронтенд корректно отдает статические файлы
-- Backend запускается и может подключиться к Redis
-- Порты корректно проброшены и приложение доступно извне
-
-## Заключение
-
-При работе в этом проекте ИИ-агент должен:
-1. Всегда учитывать влияние изменений на все компоненты системы
-2. Поддерживать актуальность документации
-3. Следовать установленным паттернам и практикам
-4. Проверять совместимость изменений с существующей архитектурой
+# Проверка переменных
+docker compose exec frontend env | grep VITE
+```

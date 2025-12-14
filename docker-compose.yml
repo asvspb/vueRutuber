@@ -1,43 +1,135 @@
-version: "3.9"
-
 services:
+  # Frontend Service (Vue.js)
   frontend:
-    build: .
-    container_name: vuExpert-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vueRutube-frontend
+    restart: unless-stopped
     ports:
-      - "4173:4173" # localhost:4173 -> контейнер (vite preview)
-    env_file:
-      - .env
+      - "4173:4173"
     environment:
-      # VITE_* переменные можно добавить здесь при необходимости
-      VITE_API_BASE_URL: "http://backend:8000"
+      - NODE_ENV=production
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # Backend Service (FastAPI) - ПОРТ 3535
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: vuExpert-backend
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
+    restart: unless-stopped
     environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    depends_on:
-      - redis
-    volumes:
-      - sqlite_data:/app/data
+      # Database
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/vuetube
+      - SYNC_DATABASE_URL=postgresql://postgres:password@db:5432/vuetube
 
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+
+      # CORS
+      - CORS_ORIGINS=http://localhost,http://localhost:4173,http://localhost:3000,http://localhost:3535
+
+      # Logging
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+
+      # Security
+      - SECRET_KEY=your-secret-key-here
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+      # Environment
+      - ENVIRONMENT=production
+      - BACKEND_PORT=3535
+
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    ports:
+      - "3535:3535"
+    volumes:
+      - backend_logs:/app/logs
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3535/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Database Service (PostgreSQL)
+  db:
+    image: postgres:16-alpine
+    container_name: vuExpert-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vuetube
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Service
   redis:
     image: redis:7-alpine
     container_name: vuExpert-redis
-    ports:
-      - "6379:6379" # по необходимости (для отладки/GUI)
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-}
     volumes:
       - redis_data:/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+# Networks
+networks:
+  app_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Persistent Volumes
 volumes:
-  redis_data:
-  sqlite_data:
+  postgres_data:
+    driver: local
 
+  redis_data:
+    driver: local
+
+  backend_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/backend

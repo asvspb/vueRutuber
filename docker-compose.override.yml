@@ -1,30 +1,65 @@
-version: "3.8"
+# Override для локальной разработки
 
 services:
+  # Frontend - использовать production build с serve
   frontend:
+    build: .
+    # Используем дефолтную команду из Dockerfile (serve)
     ports:
       - "4173:4173"
     environment:
-      - VITE_API_BASE_URL=http://backend:8000
-    # Убираем depends_on для возможности запуска по отдельности
-    # depends_on:
-    #   - backend
+      - VITE_API_BASE_URL=/api
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend.entrypoints=web,websecure,websecure8443
+      - traefik.http.routers.frontend.tls=true
+      - traefik.http.services.frontend.loadbalancer.server.port=4173
 
+  # Backend - использовать локальный development
   backend:
-    ports:
-      - "8000:8000"
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    # Убираем depends_on для возможности запуска по отдельности
-    # depends_on:
-    #   - redis
-
-  redis:
-    ports:
-      - "6379:6379"
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 3535 --reload
     volumes:
-      - redis_data:/data
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/vuetube
+      - SYNC_DATABASE_URL=postgresql://postgres:password@db:5432/vuetube
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - CORS_ORIGINS=http://localhost,http://localhost:8082,https://localhost:8443,https://localhost,http://localhost:4173,http://localhost:3000,http://localhost:3535
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend.rule=PathPrefix(`/api`)
+      - traefik.http.routers.backend.entrypoints=web,websecure,websecure8443
+      - traefik.http.routers.backend.tls=true
+      - traefik.http.services.backend.loadbalancer.server.port=3535
+
+  # Database Service (PostgreSQL)
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vuetube
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - development настройки
+  redis:
+    command: redis-server --appendonly yes --protected-mode no
 
 volumes:
-  redis_data:
+  postgres_data:
