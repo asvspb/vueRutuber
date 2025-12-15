@@ -1,19 +1,24 @@
+import asyncio
 import os
+from dotenv import load_dotenv
 from typing import List
 
-from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
-# Загружаем переменные окружения из файла .env
-from dotenv import load_dotenv
-load_dotenv()
-
 from .database import get_db, engine
 from .models import Base
 from . import crud, schemas
+from .rutube_api_scraper import run_api_scraper, import_rutube_playlist_videos, import_rutube_channel
+import re
+from urllib.parse import urlparse
+
+# Загружаем переменные окружения из файла .env
+load_dotenv()
+
 
 # Настройки Redis
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
@@ -23,7 +28,6 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 app = FastAPI(title="VueExpert Backend", version="0.1.0")
 
 # Создаем подприложение для API
-from fastapi import APIRouter
 api_router = APIRouter()
 
 
@@ -47,8 +51,6 @@ redis_client = redis.from_url(
 
 # Создание таблиц при запуске приложения
 # Планировщик ежедневного запуска Rutube скрапера
-from .rutube_api_scraper import run_api_scraper
-import asyncio
 
 _scrape_task: asyncio.Task | None = None
 
@@ -280,9 +282,6 @@ async def read_playlist_videos(
 
 
 # Эндпоинты для импорта плейлистов из Rutube
-from .rutube_api_scraper import import_rutube_playlist_videos
-import re
-from urllib.parse import urlparse
 
 def validate_rutube_playlist_url(url: str) -> bool:
     """Проверяет, является ли URL действительным URL плейлиста Rutube"""
@@ -310,6 +309,28 @@ def extract_playlist_id_from_url(url: str) -> str:
     if match:
         return match.group(1)
     return None
+
+
+def validate_rutube_channel_url(url: str) -> bool:
+    """Проверяет, что URL является валидным URL канала Rutube"""
+    try:
+        parsed = urlparse(url)
+        if not parsed.netloc.endswith('rutube.ru'):
+            return False
+        path_parts = parsed.path.strip('/').split('/')
+        # Ожидаем /channel/{id}/
+        if len(path_parts) >= 2 and path_parts[0] == 'channel':
+            ch_id = path_parts[1]
+            return ch_id.isdigit()
+        return False
+    except Exception:
+        return False
+
+
+def extract_channel_id_from_url(url: str) -> str | None:
+    """Извлекает ID канала из URL вида https://rutube.ru/channel/{id}/"""
+    match = re.search(r'/channel/(\d+)', url)
+    return match.group(1) if match else None
 
 
 @api_router.post("/playlists/import")
@@ -347,5 +368,38 @@ async def import_playlist(
         raise HTTPException(status_code=500, detail=f"Import error: {str(e)}")
 
 
-# Подключаем маршруты к основному приложению с префиксом /api
+@api_router.post("/channels/import")
+async def import_channel(
+    rutube_channel_url: str,
+    channel_videos_limit: int = 0,
+    scan_playlists: bool = True,
+    per_playlist_limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    """Импорт/создание канала по URL Rutube. Опционально импорт последних видео (import_limit > 0)."""
+    if not validate_rutube_channel_url(rutube_channel_url):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Rutube channel URL. Expected format: https://rutube.ru/channel/{id}/"
+        )
+
+    channel_id = extract_channel_id_from_url(rutube_channel_url)
+    if not channel_id:
+        raise HTTPException(status_code=400, detail="Could not extract channel ID from URL")
+
+    try:
+        result = await import_rutube_channel(
+            db,
+            rutube_channel_url,
+            channel_id,
+            channel_videos_limit if channel_videos_limit and channel_videos_limit > 0 else None,
+            scan_playlists,
+            per_playlist_limit,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Channel import error: {str(e)}")
+
+# Подключаем маршруты к основному приложению с префиксом /api и без префикса для совместимости тестов
 app.include_router(api_router, prefix="/api")
+app.include_router(api_router)  # duplicate mount at root for test expectations

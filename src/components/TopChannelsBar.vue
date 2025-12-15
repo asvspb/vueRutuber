@@ -33,7 +33,17 @@
         </v-slide-group>
       </v-col>
 
-      <v-col cols="auto">
+      <v-col cols="auto" class="d-flex align-center">
+        <v-btn
+          icon="mdi-plus"
+          variant="text"
+          density="comfortable"
+          class="mr-1"
+          @click="showImportDialog = true"
+        >
+          <v-icon>mdi-plus</v-icon>
+          <v-tooltip activator="parent" location="bottom">Import Channel</v-tooltip>
+        </v-btn>
         <v-btn
           icon="mdi-close"
           variant="text"
@@ -47,11 +57,14 @@
       </v-col>
     </v-row>
   </v-container>
+  <ChannelImportDialog v-model="showImportDialog" @import-complete="handleImportComplete" />
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useChannelsStore } from '@/stores/channels'
+import ChannelImportDialog from './ChannelImportDialog.vue'
+import { usePlaylistsStore } from '@/stores/playlists'
 
 // Props
 interface Props {
@@ -68,6 +81,8 @@ const emit = defineEmits<{
 
 // Stores
 const channelsStore = useChannelsStore()
+const playlistsStore = usePlaylistsStore()
+const showImportDialog = ref(false)
 
 // Handle channel change
 const handleChannelChange = () => {
@@ -81,6 +96,11 @@ const clearChannelFilter = () => {
 }
 
 // Initialize
+const handleImportComplete = async () => {
+  await channelsStore.fetchChannels()
+  await playlistsStore.fetchPlaylists()
+}
+
 onMounted(async () => {
   await channelsStore.fetchChannels()
   // Set the selected channel from props if not already set

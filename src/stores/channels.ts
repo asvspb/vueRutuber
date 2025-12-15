@@ -39,12 +39,40 @@ export const useChannelsStore = defineStore('channels', () => {
     selectedChannelId.value = id
   }
 
+  const importChannel = async (url: string, options?: { scan_playlists?: boolean; per_playlist_limit?: number; channel_videos_limit?: number }) => {
+    loading.value = true
+    error.value = null
+    try {
+      const params = new URLSearchParams()
+      params.set('rutube_channel_url', url)
+      if (options?.channel_videos_limit !== undefined) params.set('channel_videos_limit', String(options.channel_videos_limit))
+      if (options?.scan_playlists !== undefined) params.set('scan_playlists', String(options.scan_playlists))
+      if (options?.per_playlist_limit !== undefined) params.set('per_playlist_limit', String(options.per_playlist_limit))
+
+      const response = await fetch(`/api/channels/import?${params.toString()}`, { method: 'POST' })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.detail || `HTTP ${response.status}`)
+      }
+      const result = await response.json()
+      await fetchChannels()
+      return result
+    } catch (err) {
+      console.error('Error importing channel:', err)
+      error.value = err instanceof Error ? err.message : 'Import failed'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     channels,
     selectedChannelId,
     loading,
     error,
     fetchChannels,
-    selectChannel
+    selectChannel,
+    importChannel
   }
 })

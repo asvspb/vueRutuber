@@ -16,6 +16,10 @@ CHANNEL_ID = os.getenv("RUTUBE_CHANNEL_ID", "32869212")
 
 
 async def fetch_channel_videos(limit: int = 100):
+    """Deprecated: use fetch_channel_videos_by_id with explicit channel_id."""
+    return await fetch_channel_videos_by_id(CHANNEL_ID, limit)
+
+async def fetch_channel_videos_by_id(channel_id: str, limit: int = 100):
     """Получить видео из канала через Rutube API"""
     videos = []
     page = 1
@@ -23,7 +27,7 @@ async def fetch_channel_videos(limit: int = 100):
 
     async with aiohttp.ClientSession() as session:
         while len(videos) < limit:
-            url = f"{RUTUBE_API_BASE}/video/person/{CHANNEL_ID}/?page={page}&page_size={page_size}"
+            url = f"{RUTUBE_API_BASE}/video/person/{channel_id}/?page={page}&page_size={page_size}"
 
             try:
                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
@@ -363,7 +367,181 @@ async def run_api_scraper(limit: int = 100):
         raise
 
 
+# Channel import utilities
+async def fetch_channel_details(channel_id: str):
+    """Fetch channel details (name, avatar, description) from Rutube API by channel id."""
+    async with aiohttp.ClientSession() as session:
+        url = f"{RUTUBE_API_BASE}/person/{channel_id}/"
+        try:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                if response.status != 200:
+                    print(f"Channel details API returned status {response.status}")
+                    return None
+                data = await response.json()
+                # API may return fields like name, avatar_url, description
+                return {
+                    'rutube_id': str(data.get('id', channel_id)),
+                    'title': data.get('name', f'Channel {channel_id}'),
+                    'avatar_url': data.get('avatar_url', None),
+                    'description': data.get('description', None),
+                }
+        except Exception as e:
+            print(f"Error fetching channel details: {e}")
+            return None
+
+async def import_rutube_channel(db, rutube_channel_url: str, channel_id: str, channel_videos_limit: int | None = None, scan_playlists: bool = True, per_playlist_limit: int = 100):
+    """Create or update a Channel by rutube channel id. Optionally import recent videos."""
+    # Check existing channel
+    existing = await db.execute(select(Channel).where(Channel.rutube_id == channel_id))
+    channel = existing.scalar_one_or_none()
+
+    details = await fetch_channel_details(channel_id)
+
+    if channel:
+        # update basic fields
+        if details:
+            channel.title = details['title']
+            channel.avatar_url = details.get('avatar_url')
+            channel.description = details.get('description')
+    else:
+        # create new channel
+        channel = Channel(
+            rutube_id=channel_id,
+            title=(details and details['title']) or f"Channel {channel_id}",
+            avatar_url=details.get('avatar_url') if details else None,
+            description=details.get('description') if details else None,
+            is_active=True,
+        )
+        db.add(channel)
+        await db.flush()
+
+    imported_videos = 0
+    playlists_found = 0
+    playlists_processed = 0
+    # Optionally import videos for this channel
+    if channel_videos_limit and channel_videos_limit > 0:
+        videos = await fetch_channel_videos_by_id(channel_id, limit=channel_videos_limit)
+        for v in videos:
+            # Use rutube video id if possible; for channel endpoint we didn't add it, so extract from url
+            rutube_video_id = None
+            try:
+                rutube_video_id = v.get('url', '').rstrip('/').split('/')[-1]
+            except Exception:
+                rutube_video_id = None
+
+            existing_movie = await db.execute(select(Movie).where(Movie.rutube_video_id == rutube_video_id))
+            movie = existing_movie.scalar_one_or_none() if rutube_video_id else None
+
+            if movie:
+                # update
+                movie.title = v.get('title', movie.title)
+                movie.thumbnail_url = v.get('thumbnail_url', movie.thumbnail_url)
+                movie.views = v.get('views', movie.views)
+                movie.description = v.get('description', movie.description)
+                movie.duration = format_duration(v.get('duration', 0))
+                movie.genre = v.get('category', movie.genre)
+                movie.source_url = v.get('url', movie.source_url)
+                movie.channel_added_at = parse_channel_added_at(v.get('publication_date', ''))
+                movie.channel_id = channel.id
+            else:
+                # create
+                movie = Movie(
+                    title=v.get('title', ''),
+                    year=extract_year_from_date(v.get('publication_date', '')),
+                    thumbnail_url=v.get('thumbnail_url', ''),
+                    views=v.get('views', 0),
+                    source_url=v.get('url', ''),
+                    duration=format_duration(v.get('duration', 0)),
+                    description=v.get('description', ''),
+                    genre=v.get('category', 'Видео'),
+                    is_active=True,
+                    channel_added_at=parse_channel_added_at(v.get('publication_date', '')),
+                    channel_id=channel.id,
+                    rutube_video_id=rutube_video_id,
+                )
+                db.add(movie)
+                imported_videos += 1
+        await db.flush()
+
+    # Optionally scan playlists and import them
+    if scan_playlists:
+        try:
+            playlists = await fetch_channel_playlists_by_id(channel_id)
+            playlists_found = len(playlists)
+            for p in playlists:
+                try:
+                    playlist_rutube_id = str(p.get('rutube_id')) if isinstance(p, dict) else str(p)
+                    if not playlist_rutube_id:
+                        continue
+                    playlist_url = f"https://rutube.ru/plst/{playlist_rutube_id}/"
+                    await import_rutube_playlist_videos(db, playlist_url, playlist_rutube_id, per_playlist_limit)
+                    playlists_processed += 1
+                    await asyncio.sleep(0.25)
+                except Exception as inner_e:
+                    print(f"Error importing playlist {p}: {inner_e}")
+        except Exception as e:
+            print(f"Error fetching playlists for channel {channel_id}: {e}")
+
+    await db.commit()
+
+    return {
+        'channel_id': channel.id,
+        'rutube_channel_id': channel.rutube_id,
+        'title': channel.title,
+        'imported_videos': imported_videos,
+        'playlists_found': playlists_found,
+        'playlists_imported': playlists_processed,
+    }
+
+# Fetch playlists for a channel via Rutube API
+async def fetch_channel_playlists_by_id(channel_id: str, limit: int | None = None):
+    """Return list of playlists for a given channel id using Rutube API.
+    Each item: { rutube_id, title, image_url?, description? }
+    """
+    results = []
+    page = 1
+    page_size = 20
+    async with aiohttp.ClientSession() as session:
+        while True:
+            url_primary = f"{RUTUBE_API_BASE}/playlist/person/{channel_id}/?page={page}&page_size={page_size}"
+            try:
+                async with session.get(url_primary, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                    data = None
+                    if resp.status == 200:
+                        data = await resp.json()
+                    else:
+                        # try alternative endpoint if available
+                        alt = f"{RUTUBE_API_BASE}/person/{channel_id}/playlists/?page={page}&page_size={page_size}"
+                        async with session.get(alt, timeout=aiohttp.ClientTimeout(total=30)) as alt_resp:
+                            if alt_resp.status == 200:
+                                data = await alt_resp.json()
+                            else:
+                                break
+                    items = data.get('results', []) if isinstance(data, dict) else []
+                    if not items:
+                        break
+                    for it in items:
+                        playlist_id = str(it.get('id') or it.get('rutube_id') or '')
+                        if not playlist_id:
+                            continue
+                        results.append({
+                            'rutube_id': playlist_id,
+                            'title': it.get('name') or it.get('title') or f"Playlist {playlist_id}",
+                            'image_url': it.get('thumbnail_url') or it.get('image_url'),
+                            'description': it.get('description')
+                        })
+                    page += 1
+                    if limit and len(results) >= limit:
+                        break
+                    await asyncio.sleep(0.25)
+            except Exception as e:
+                print(f"Error fetching playlists page {page} for channel {channel_id}: {e}")
+                break
+    return results
+
 if __name__ == "__main__":
+
+
     print("Starting Rutube API scraper...")
     asyncio.run(run_api_scraper())
 
